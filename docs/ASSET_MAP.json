@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "coordinateSpace": "Original image pixels; origin is upper-left.",
+  "verifiedImageSize": {
+    "width": 1254,
+    "height": 1254
+  },
+  "notes": [
+    "Both source sheets contain a 2×2 layout with 627×627 cells.",
+    "Use a 1:1 clipping viewport and background-size: 200% 200%. The four mappings below show one complete cell without neighboring garments.",
+    "These sheets are opaque warm-white photography, not alpha-transparent cutouts. No background removal or pixel editing was performed.",
+    "For the white app canvas use background-color:#fff with mix-blend-mode:multiply on the garment layer. This blends the warm background visually but does not create actual transparency.",
+    "Do not use an ordinary full-sheet img with object-fit:contain; it will show all four garments.",
+    "For horizontal wheels, place each square garment viewport inside a borderless white slide. Avoid an additional colored card or border around each item."
+  ],
+  "cssBase": {
+    "display": "block",
+    "aspectRatio": "1 / 1",
+    "backgroundRepeat": "no-repeat",
+    "backgroundSize": "200% 200%",
+    "backgroundColor": "#fff",
+    "mixBlendMode": "multiply"
+  },
+  "assets": [
+    {
+      "garmentId": "oat",
+      "name": "燕麦色羊毛混纺西装",
+      "category": "外套",
+      "url": "/images/products.png",
+      "cellIndex": 0,
+      "cellPixels": {
+        "x": 0,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      },
+      "backgroundImage": "url(\"/images/products.png\")",
+      "backgroundSize": "200% 200%",
+      "backgroundPosition": "0% 0%",
+      "recommendedViewport": {
+        "width": "100%",
+        "aspectRatio": "1 / 1",
+        "overflow": "hidden"
+      },
+      "verifiedNoNeighborBleed": true
+    },
+    {
+      "garmentId": "navy",
+      "name": "午夜蓝廓形西装",
+      "category": "外套",
+      "url": "/images/products.png",
+      "cellIndex": 1,
+      "cellPixels": {
+        "x": 627,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      },
+      "backgroundImage": "url(\"/images/products.png\")",
+      "backgroundSize": "200% 200%",
+      "backgroundPosition": "100% 0%",
+      "recommendedViewport": {
+        "width": "100%",
+        "aspectRatio": "1 / 1",
+        "overflow": "hidden"
+      },
+      "verifiedNoNeighborBleed": true
+    },
+    {
+      "garmentId": "trouser",
+      "name": "垂感高腰阔腿长裤",
+      "category": "下装",
+      "url": "/images/products.png",
+      "cellIndex": 2,
+      "cellPixels": {
+        "x": 0,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      },
+      "backgroundImage": "url(\"/images/products.png\")",
+      "backgroundSize": "200% 200%",
+      "backgroundPosition": "0% 100%",
+      "recommendedViewport": {
+        "width": "100%",
+        "aspectRatio": "1 / 1",
+        "overflow": "hidden"
+      },
+      "verifiedNoNeighborBleed": true
+    },
+    {
+      "garmentId": "bag",
+      "name": "半月形肩背包",
+      "category": "配饰",
+      "url": "/images/products.png",
+      "cellIndex": 3,
+      "cellPixels": {
+        "x": 627,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      },
+      "backgroundImage": "url(\"/images/products.png\")",
+      "backgroundSize": "200% 200%",
+      "backgroundPosition": "100% 100%",
+      "recommendedViewport": {
+        "width": "100%",
+        "aspectRatio": "1 / 1",
+        "overflow": "hidden"
+      },
+      "verifiedNoNeighborBleed": true
+    },
+    {
+      "garmentId": "tee",
+      "name": "柔白圆领针织衫",
+      "category": "上装",
+      "url": "/images/wardrobe-essentials.png",
+      "cellIndex": 0,
+      "cellPixels": {
+        "x": 0,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      },
+      "backgroundImage": "url(\"/images/wardrobe-essentials.png\")",
+      "backgroundSize": "200% 200%",
+      "backgroundPosition": "0% 0%",
+      "recommendedViewport": {
+        "width": "100%",
+        "aspectRatio": "1 / 1",
+        "overflow": "hidden"
+      },
+      "verifiedNoNeighborBleed": true
+    },
+    {
+      "garmentId": "jeans",
+      "name": "复古直筒牛仔裤",
+      "category": "下装",
+      "url": "/images/wardrobe-essentials.png",
+      "cellIndex": 1,
+      "cellPixels": {
+        "x": 627,
+        "y": 0,
+        "width": 627,
+        "height": 627
+      },
+      "backgroundImage": "url(\"/images/wardrobe-essentials.png\")",
+      "backgroundSize": "200% 200%",
+      "backgroundPosition": "100% 0%",
+      "recommendedViewport": {
+        "width": "100%",
+        "aspectRatio": "1 / 1",
+        "overflow": "hidden"
+      },
+      "verifiedNoNeighborBleed": true
+    },
+    {
+      "garmentId": "shoe",
+      "name": "经典棕色乐福鞋",
+      "category": "鞋履",
+      "url": "/images/wardrobe-essentials.png",
+      "cellIndex": 2,
+      "cellPixels": {
+        "x": 0,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      },
+      "backgroundImage": "url(\"/images/wardrobe-essentials.png\")",
+      "backgroundSize": "200% 200%",
+      "backgroundPosition": "0% 100%",
+      "recommendedViewport": {
+        "width": "100%",
+        "aspectRatio": "1 / 1",
+        "overflow": "hidden"
+      },
+      "verifiedNoNeighborBleed": true
+    },
+    {
+      "garmentId": "scarf",
+      "name": "奶油色羊毛围巾",
+      "category": "配饰",
+      "url": "/images/wardrobe-essentials.png",
+      "cellIndex": 3,
+      "cellPixels": {
+        "x": 627,
+        "y": 627,
+        "width": 627,
+        "height": 627
+      },
+      "backgroundImage": "url(\"/images/wardrobe-essentials.png\")",
+      "backgroundSize": "200% 200%",
+      "backgroundPosition": "100% 100%",
+      "recommendedViewport": {
+        "width": "100%",
+        "aspectRatio": "1 / 1",
+        "overflow": "hidden"
+      },
+      "verifiedNoNeighborBleed": true
+    }
+  ]
+}
