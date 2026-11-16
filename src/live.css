@@ -50,7 +50,7 @@
 .live-task form input {
   margin-top: 9px;
 }
-.live-task [role='alert'] {
+.live-task [role="alert"] {
   color: #a34437;
 }
 .live-spinner {
@@ -300,4 +300,67 @@
   to {
     transform: rotate(360deg);
   }
+}
+.live-person-sources {
+  border: 0;
+  margin: 0 0 18px;
+  padding: 0;
+  min-width: 0;
+}
+.live-person-sources legend {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.live-person-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.live-person-grid button {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e0e3e9;
+  border-radius: 17px;
+  background: #f6f7fa;
+  padding: 5px 5px 10px;
+  color: #616978;
+  text-align: center;
+}
+.live-person-grid button.selected {
+  border-color: #3c7bdd;
+  box-shadow: 0 0 0 1px #3c7bdd;
+  color: #245abb;
+  background: #eef4ff;
+}
+.live-person-grid button:disabled {
+  opacity: 0.65;
+}
+.live-person-grid img,
+.live-person-upload-icon {
+  width: 100%;
+  height: 94px;
+  object-fit: cover;
+  object-position: center 20%;
+  border-radius: 12px;
+  background: #edf0f5;
+}
+.live-person-upload-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.live-person-grid strong,
+.live-person-grid small {
+  display: block;
+}
+.live-person-grid strong {
+  margin-top: 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.live-person-grid small {
+  margin-top: 3px;
+  font-size: 10px;
+  color: #88919e;
 }

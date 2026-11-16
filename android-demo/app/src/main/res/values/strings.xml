@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MUSE演示</string>
+    <string name="back">返回</string>
+    <string name="change_address">改地址</string>
+    <string name="address_title">连接电脑上的 MUSE</string>
+    <string name="address_help">手机与电脑连接同一个 Wi-Fi 或热点，启动电脑上的 MUSE 服务，再填写电脑地址。此演示 App 需要电脑服务保持运行。</string>
+    <string name="address_hint">例如 http://192.168.1.10:5179</string>
+    <string name="address_rules">HTTP 仅支持局域网 IP 或 localhost；其他服务地址需使用 HTTPS。localhost 指这台手机。</string>
+    <string name="connect">连接 MUSE</string>
+    <string name="invalid_address">地址无效。请使用完整的 HTTPS 地址，或 http://局域网IP:端口；地址不能包含账号、密码或 # 片段。</string>
+    <string name="loading">正在连接 MUSE…</string>
+    <string name="network_title">暂时连接不上 MUSE</string>
+    <string name="network_help">请确认电脑服务正在运行、两台设备连接同一网络，且地址与端口填写正确。网络恢复后可重试。</string>
+    <string name="retry">重试</string>
+    <string name="navigation_blocked">已阻止离开当前服务。外部链接仅支持 HTTPS。</string>
+    <string name="no_browser">没有可打开此 HTTPS 链接的应用。</string>
+    <string name="choose_image">选择一张图片</string>
+    <string name="image_unavailable">无法读取这张图片，请重新选择。</string>
+    <string name="file_picker_unavailable">无法打开图片选择器，请使用支持文档选择的系统应用。</string>
+    <string name="image_only">此演示支持一次选择一张图片。</string>
+    <string name="webview_unavailable">系统 WebView 无法启动。请安装或更新 Android System WebView 后重新打开。</string>
+</resources>

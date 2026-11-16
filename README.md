@@ -2,7 +2,7 @@
 
 面向手机的穿搭应用，使用 React、TypeScript、Vite 和 Lenso UI。当前交付为**可运行的本地开发版**：衣橱、三场景草稿、AI 搭配和图片试穿已连接业务 API 与后台 Worker。
 
-**[本地启动](docs/LOCAL_DEVELOPMENT.md)** · **[完整 SPEC](docs/SPEC.md)** · **[团队交接](docs/TEAM_HANDOFF.md)** · **[API 契约 v1.1](docs/contracts/openapi.json)** · **[公开交互演示](https://muse-mobile-wardrobe.gentle-dell-0151.chatgpt.site)**
+**[手机热点与安装说明](docs/MOBILE_ACCESS.md)** · **[本地启动](docs/LOCAL_DEVELOPMENT.md)** · **[完整 SPEC](docs/SPEC.md)** · **[团队交接](docs/TEAM_HANDOFF.md)** · **[API 契约 v1.1](docs/contracts/openapi.json)** · **[公开交互演示](https://muse-mobile-wardrobe.gentle-dell-0151.chatgpt.site)**
 
 ![今日搭配](docs/scene-refresh/published.png)
 
@@ -11,7 +11,7 @@
 - 今日搭配：轻松日常、周末漫步、见面时刻分别保存草稿、排版和锁定；支持自由换衣、版本冲突处理与保存。
 - 衣橱：上传单品图片，确认名字和分类后入库；图片私有，支持本机旧衣物的显式同步。
 - AI 搭配：Qoder 读取真实衣橱，通过两个 Custom Tools 返回候选；只有用户采纳才修改草稿。
-- 图片试穿：上传原始人物照片，选择单件或整套，明确点击生成；Seedream 返回结果后私有转存。刷新、后台恢复、取消和未知请求状态均有对应处理。
+- 图片试穿：选择默认男／女 AI 示例模特，或上传原始人物照片，再选择单件或整套，明确点击生成；Seedream 返回结果后私有转存。刷新、后台恢复、取消和未知请求状态均有对应处理。
 - 记忆：确认的偏好与反馈先存数据库，再同步到每用户 Qoder Memory Store；推荐 Session 只读挂载。
 
 截至 2026-11-17，实际创建 3 个 Qoder 搭配任务（2 个成功、1 个中断后待确认），保存 3 张 Seedream 试穿图，完成 Memory 写入和读回。手机尺寸浏览器已验证候选采纳、照片上传、刷新恢复、对比与保存；68 项测试通过。详见 [验收记录](docs/VALIDATION.md)。Dream 只有离线测试和手动命令，**未执行真实 Dream，默认关闭**。

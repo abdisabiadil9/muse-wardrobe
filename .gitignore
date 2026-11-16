@@ -23,3 +23,9 @@ private-data/
 .local/
 .artifacts/
 *-deploy.tar.gz
+
+# Android local build state
+android-demo/.gradle/
+android-demo/**/build/
+android-demo/local.properties
+*.apk

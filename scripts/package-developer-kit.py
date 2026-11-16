@@ -15,7 +15,7 @@ for name in skills:
         for path in members(root / 'skills' / name):
             archive.write(path, str(path.relative_to(root / 'skills')))
 with ZipFile(out / 'muse-developer-kit-v1.zip', 'w', ZIP_DEFLATED) as archive:
-    for name in ['SPEC.md', 'LOCAL_DEVELOPMENT.md', 'TEAM_HANDOFF.md', 'SEEDREAM_TRYON.md', 'DEVELOPER_KIT_README.md', 'VALIDATION.md', 'contracts/openapi.json']:
+    for name in ['SPEC.md', 'LOCAL_DEVELOPMENT.md', 'MOBILE_ACCESS.md', 'TEAM_HANDOFF.md', 'SEEDREAM_TRYON.md', 'DEVELOPER_KIT_README.md', 'VALIDATION.md', 'contracts/openapi.json']:
         path = root / 'docs' / name
         if path.exists(): archive.write(path, str(path.relative_to(root)))
     for name in skills:

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { PersonSource } from "../tryonInput";
 import {
   ApiError,
   errorMessage,
@@ -6,13 +7,14 @@ import {
   newKey,
   type Api,
   type Task,
-} from '../api/client';
+} from "../api/client";
 export type TaskContext = {
   scene: string;
   draftId: string;
   revision: number;
   personAssetId?: string;
-  mode?: 'single' | 'outfit';
+  personSource?: PersonSource;
+  mode?: "single" | "outfit";
   targetSlot?: string;
 };
 type Pending = {
@@ -29,7 +31,7 @@ type RecordState = {
 };
 export function readTaskRecord(key: string): RecordState {
   try {
-    return JSON.parse(localStorage.getItem(key) || 'null') || { seq: 0 };
+    return JSON.parse(localStorage.getItem(key) || "null") || { seq: 0 };
   } catch {
     return { seq: 0 };
   }
@@ -39,7 +41,7 @@ export function useTask(api: Api, owner: string, scope: string) {
   const key = `muse-live:${owner}:task:${scope}`;
   const [record, setRecord] = useState<RecordState>(() => readTaskRecord(key));
   const [task, setTask] = useState<Task | null>(null),
-    [error, setError] = useState(''),
+    [error, setError] = useState(""),
     [submitting, setSubmitting] = useState(false);
   const recordRef = useRef(record);
   recordRef.current = record;
@@ -55,7 +57,7 @@ export function useTask(api: Api, owner: string, scope: string) {
   useEffect(() => {
     setRecord(readTaskRecord(key));
     setTask(null);
-    setError('');
+    setError("");
   }, [key]);
   useEffect(() => {
     if (!record.taskId) return;
@@ -74,7 +76,7 @@ export function useTask(api: Api, owner: string, scope: string) {
         );
         if (controller.signal.aborted) return;
         setTask(next);
-        setError('');
+        setError("");
         currentSeq = Math.max(currentSeq, next.last_event_seq);
         persist({ ...recordRef.current, seq: currentSeq });
         terminal = isTerminal(next);
@@ -100,25 +102,25 @@ export function useTask(api: Api, owner: string, scope: string) {
     };
     void connect();
     const timer = setInterval(() => {
-      if (!terminal && document.visibilityState === 'visible') void refresh();
+      if (!terminal && document.visibilityState === "visible") void refresh();
     }, 4000);
     const foreground = () => {
-      if (document.visibilityState === 'visible') void refresh();
+      if (document.visibilityState === "visible") void refresh();
     };
-    document.addEventListener('visibilitychange', foreground);
-    window.addEventListener('online', foreground);
+    document.addEventListener("visibilitychange", foreground);
+    window.addEventListener("online", foreground);
     return () => {
       controller.abort();
       clearInterval(timer);
       clearTimeout(reconnect);
       refreshRef.current = null;
-      document.removeEventListener('visibilitychange', foreground);
-      window.removeEventListener('online', foreground);
+      document.removeEventListener("visibilitychange", foreground);
+      window.removeEventListener("online", foreground);
     };
   }, [api, record.taskId, record.pending, key, persist]);
   const send = async (pending: Pending) => {
     setSubmitting(true);
-    setError('');
+    setError("");
     try {
       const accepted = await api.post<{ task_id: string; status: string }>(
         pending.path,
@@ -127,14 +129,14 @@ export function useTask(api: Api, owner: string, scope: string) {
       );
       if (
         !accepted ||
-        typeof accepted.task_id !== 'string' ||
+        typeof accepted.task_id !== "string" ||
         !accepted.task_id
       )
         throw new ApiError(0, {
-          code: 'INVALID_TASK_ACK',
-          message: '任务回复不完整，请恢复上次提交。',
+          code: "INVALID_TASK_ACK",
+          message: "任务回复不完整，请恢复上次提交。",
           retryable: true,
-          request_id: '',
+          request_id: "",
         });
       persist({ taskId: accepted.task_id, seq: 0, context: pending.context });
       setTask(null);
@@ -155,7 +157,7 @@ export function useTask(api: Api, owner: string, scope: string) {
   };
   const start = async (path: string, body: unknown, context: TaskContext) => {
     if (recordRef.current.pending)
-      throw new Error('上次提交结果待确认，请先恢复查询。');
+      throw new Error("上次提交结果待确认，请先恢复查询。");
     const pending = { path, body, key: newKey(), context };
     persist({ ...recordRef.current, pending });
     await send(pending);
@@ -172,13 +174,13 @@ export function useTask(api: Api, owner: string, scope: string) {
         `/tasks/${recordRef.current.taskId}/cancel`,
       );
       setTask(next);
-      setError('');
+      setError("");
     } catch (e) {
       setError(errorMessage(e));
     }
   };
   const answer = async (message: string) => {
-    if (!recordRef.current.taskId || task?.status !== 'needs_input') return;
+    if (!recordRef.current.taskId || task?.status !== "needs_input") return;
     await start(
       `/tasks/${recordRef.current.taskId}/messages`,
       { message },
