@@ -39,7 +39,6 @@ import {
   type Draft,
   type MediaAsset,
   type Me,
-  type OutfitProposal,
   type Scene,
   type Task,
 } from './api/client';
@@ -602,40 +601,6 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
       notify(errorMessage(e));
     }
   };
-  const applyProposal = async (proposal: OutfitProposal) => {
-    const d = await flush(scene);
-    const proposed = validateProposal(proposal, d, rawItems);
-    try {
-      const accepted = await api.patch<Draft>(`/outfit-drafts/${scene}`, {
-        expected_revision: d.revision,
-        slots: proposed,
-        canvas_layout: d.canvas_layout,
-      });
-      servers.current[scene] = accepted;
-      setDraft(accepted);
-      setProposalSource({ taskId: proposal.task_id, slots: proposal.slots });
-      const next = { ...recommendations, [scene]: accepted };
-      setRecommendations(next);
-      localWrite(`${prefix}:recommendations`, next);
-      setSheet(null);
-      notify('已用这套建议，仍可自由换衣');
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        servers.current[scene] = await api.get<Draft>(
-          `/outfit-drafts/${scene}`,
-        );
-        conflictRef.current = scene;
-        setConflict(scene);
-        setSyncError(
-          '云端搭配已更新，当前选择和 AI 建议均已保留。请先处理版本冲突。',
-        );
-        throw new Error(
-          '搭配版本已变化。这份建议没有应用，关闭面板后可处理版本冲突。',
-        );
-      }
-      throw e;
-    }
-  };
   const restore = () => {
     const rec = recommendations[scene];
     if (!rec) return;
@@ -946,6 +911,11 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
     servers.current[target] = accepted;
     setDraft(accepted);
     setScene(target);
+    if (look.kind === 'proposal') {
+      const next = { ...recommendations, [target]: accepted };
+      setRecommendations(next);
+      localWrite(`${prefix}:recommendations`, next);
+    }
     setProposalSource(
       look.kind === 'proposal' && look.taskId
         ? { taskId: look.taskId, slots: look.slots }
@@ -1026,7 +996,6 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
           items={items}
           enabled={capabilities.ai_styling}
           flush={() => flush(scene)}
-          onApply={applyProposal}
           renderItem={renderItem}
           initialPrompt={initialPrompt}
           onPromptConsumed={() => setInitialPrompt('')}

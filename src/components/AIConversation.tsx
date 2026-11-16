@@ -4,8 +4,8 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from "react";
-import ReactMarkdown from "react-markdown";
+} from 'react';
+import ReactMarkdown from 'react-markdown';
 import {
   ArrowDown,
   ArrowUp,
@@ -20,27 +20,22 @@ import {
   Shirt,
   Sparkles,
   X,
-} from "lucide-react";
-import type {
-  Api,
-  Draft,
-  MediaAsset,
-  OutfitProposal,
-  Task,
-} from "../api/client";
-import { errorMessage } from "../api/client";
-import type { Garment } from "../data";
+} from 'lucide-react';
+import type { Api, Draft, MediaAsset, Task } from '../api/client';
+import { errorMessage } from '../api/client';
+import type { Garment } from '../data';
 import {
   projectConversation,
+  displayAgentText,
   safeConversationImageUrl,
   safeConversationUrl,
   shouldFollowConversation,
   taskIsWorking,
   type ConversationPart,
   type ConversationTask,
-} from "../conversation";
-import { useConversation } from "../hooks/useConversation";
-import "../conversation.css";
+} from '../conversation';
+import { useConversation } from '../hooks/useConversation';
+import '../conversation.css';
 
 export type AIConversationProps = {
   api: Api;
@@ -49,7 +44,6 @@ export type AIConversationProps = {
   items: Garment[];
   enabled: boolean;
   flush: () => Promise<Draft>;
-  onApply?: (proposal: OutfitProposal) => Promise<void>;
   renderItem?: (item: Garment) => ReactNode;
   onOpenProposal?: (task: Task) => void;
   initialPrompt?: string;
@@ -57,25 +51,25 @@ export type AIConversationProps = {
   onTaskChange?: (task: Task | null) => void;
   proposalPreviews?: Record<
     string,
-    { asset: MediaAsset; mode: "single" | "outfit"; taskId: string }
+    { asset: MediaAsset; mode: 'single' | 'outfit'; taskId: string }
   >;
 };
 const labels: Record<string, string> = {
-  queued: "已收到，稍等一下",
-  running: "正在整理搭配思路",
-  waiting_tools: "正在查看相关信息",
-  needs_input: "再了解一点你的想法",
-  succeeded: "本次搭配已完成",
-  failed: "这次没有完成",
-  cancelled: "已停止本次搭配",
-  unconfirmed: "正在等待结果确认",
+  queued: '已收到，稍等一下',
+  running: '正在整理搭配思路',
+  waiting_tools: '正在查看相关信息',
+  needs_input: '再了解一点你的想法',
+  succeeded: '本次搭配已完成',
+  failed: '这次没有完成',
+  cancelled: '已停止本次搭配',
+  unconfirmed: '正在等待结果确认',
 };
 const toolLabels: Record<string, string> = {
-  read_wardrobe: "查看我的衣橱",
-  propose_outfit: "整理搭配方案",
-  read_memory: "了解穿搭偏好",
-  search_memory: "查找穿搭偏好",
-  get_weather: "查看天气",
+  read_wardrobe: '查看我的衣橱',
+  propose_outfit: '整理搭配方案',
+  read_memory: '了解穿搭偏好',
+  search_memory: '查找穿搭偏好',
+  get_weather: '查看天气',
 };
 function Markdown({
   text,
@@ -93,7 +87,7 @@ function Markdown({
       <ReactMarkdown
         skipHtml
         urlTransform={(url, key) =>
-          key === "src" ? imageUrl(url) : safeConversationUrl(url)
+          key === 'src' ? imageUrl(url) : safeConversationUrl(url)
         }
         components={{
           a: ({ children, href }) =>
@@ -105,23 +99,23 @@ function Markdown({
               <span>{children}</span>
             ),
           img: ({ alt, src }) => {
-            const url = src ? imageUrl(src) : "";
+            const url = src ? imageUrl(src) : '';
             return url ? (
               <img
                 className="ai-inline-image"
                 src={url}
-                alt={alt || "对话中的图片"}
+                alt={alt || '对话中的图片'}
                 loading="lazy"
                 tabIndex={0}
                 role="button"
-                onClick={() => onImage(url, alt || "对话中的图片")}
+                onClick={() => onImage(url, alt || '对话中的图片')}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter")
-                    onImage(url, alt || "对话中的图片");
+                  if (event.key === 'Enter')
+                    onImage(url, alt || '对话中的图片');
                 }}
               />
             ) : (
-              <span>{alt || "图片暂不可用"}</span>
+              <span>{alt || '图片暂不可用'}</span>
             );
           },
         }}
@@ -132,15 +126,15 @@ function Markdown({
   );
 }
 function readable(value: unknown) {
-  if (value === undefined || value === null) return "";
+  if (value === undefined || value === null) return '';
   if (
     Array.isArray(value) &&
     value.every(
-      (part) => part?.type === "text" && typeof part.text === "string",
+      (part) => part?.type === 'text' && typeof part.text === 'string',
     )
   )
-    value = value.map((part) => part.text).join("\n");
-  if (typeof value === "string") {
+    value = value.map((part) => part.text).join('\n');
+  if (typeof value === 'string') {
     try {
       return JSON.stringify(JSON.parse(value), null, 2);
     } catch {
@@ -150,7 +144,7 @@ function readable(value: unknown) {
   try {
     return JSON.stringify(value, null, 2);
   } catch {
-    return "暂时无法显示";
+    return '暂时无法显示';
   }
 }
 
@@ -160,14 +154,14 @@ function ToolRow({
   onToggle,
   completed,
 }: {
-  part: Extract<ConversationPart, { type: "tool" }>;
+  part: Extract<ConversationPart, { type: 'tool' }>;
   open: boolean;
   onToggle: () => void;
   completed: boolean;
 }) {
-  const done = part.status !== "running";
+  const done = part.status !== 'running';
   return (
-    <div className={`ai-tool ${open ? "is-open" : ""}`}>
+    <div className={`ai-tool ${open ? 'is-open' : ''}`}>
       <button
         className="ai-tool-trigger"
         aria-expanded={open}
@@ -175,7 +169,7 @@ function ToolRow({
         onClick={onToggle}
       >
         <span className={`ai-tool-state ${part.status}`}>
-          {part.status === "failed" ? (
+          {part.status === 'failed' ? (
             <X size={13} />
           ) : done ? (
             <Check size={13} />
@@ -187,13 +181,13 @@ function ToolRow({
         </span>
         <span>{toolLabels[part.name] || part.name}</span>
         <small>
-          {part.status === "failed"
-            ? "未完成"
+          {part.status === 'failed'
+            ? '未完成'
             : done
-              ? "已完成"
+              ? '已完成'
               : completed
-                ? "已结束"
-                : "进行中"}
+                ? '已结束'
+                : '进行中'}
         </small>
         <ChevronDown size={14} className="ai-tool-chevron" />
       </button>
@@ -201,17 +195,17 @@ function ToolRow({
         <div id={`tool-${part.id}`} className="ai-tool-detail">
           <div>
             <span>调用参数</span>
-            <pre>{readable(part.input) || "无额外参数"}</pre>
+            <pre>{readable(part.input) || '无额外参数'}</pre>
           </div>
           <div>
             <span>返回结果</span>
             <pre>
               {readable(part.output) ||
                 (done
-                  ? "工具已完成，未提供可展示的返回内容。"
+                  ? '工具已完成，未提供可展示的返回内容。'
                   : completed
-                    ? "本次调用已结束，暂无返回内容。"
-                    : "等待返回…")}
+                    ? '本次调用已结束，暂无返回内容。'
+                    : '等待返回…')}
             </pre>
           </div>
         </div>
@@ -230,23 +224,23 @@ function ProposalCard({
   items: Garment[];
   renderItem?: (item: Garment) => ReactNode;
   onOpen?: () => void;
-  preview?: { asset: MediaAsset; mode: "single" | "outfit"; taskId: string };
+  preview?: { asset: MediaAsset; mode: 'single' | 'outfit'; taskId: string };
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   useEffect(() => setImageFailed(false), [preview?.asset.download_url]);
   const result = task.result;
-  if (result?.kind !== "outfit_proposal") return null;
+  if (result?.kind !== 'outfit_proposal') return null;
   const selected = [
     ...new Set(Object.values(result.slots).map((ref) => ref?.ref_id)),
   ]
     .map((id) => items.find((item) => item.id === id))
     .filter((item): item is Garment => !!item);
   const previewUrl =
-    preview?.asset.status === "ready" && preview.asset.download_url
+    preview?.asset.status === 'ready' && preview.asset.download_url
       ? safeConversationImageUrl(preview.asset.download_url, location.origin, [
           preview.asset.download_url,
         ])
-      : "";
+      : '';
   return (
     <button
       className="ai-proposal-card"
@@ -254,7 +248,7 @@ function ProposalCard({
       disabled={!onOpen}
       aria-label="查看这套搭配并调整"
     >
-      <div className={`ai-proposal-visual ${previewUrl ? "has-preview" : ""}`}>
+      <div className={`ai-proposal-visual ${previewUrl ? 'has-preview' : ''}`}>
         {previewUrl ? (
           imageFailed ? (
             <span className="ai-image-unavailable">
@@ -264,7 +258,7 @@ function ProposalCard({
             <img
               className="ai-result-image"
               src={previewUrl}
-              alt={`${preview?.mode === "single" ? "单件" : "整套"} AI 试穿效果`}
+              alt={`${preview?.mode === 'single' ? '单件' : '整套'} AI 试穿效果`}
               onError={() => setImageFailed(true)}
             />
           )
@@ -287,12 +281,12 @@ function ProposalCard({
       <div className="ai-proposal-copy">
         {previewUrl && (
           <span className="ai-preview-label">
-            AI 试穿 · {preview?.mode === "single" ? "单件" : "整套"}
+            AI 试穿 · {preview?.mode === 'single' ? '单件' : '整套'}
           </span>
         )}
         <span className="ai-eyebrow">为你整理的搭配</span>
         <strong>把今天，穿成喜欢的样子</strong>
-        <p>{result.reason || "从你的衣橱出发，找到新的搭配灵感。"}</p>
+        <p>{result.reason || '从你的衣橱出发，找到新的搭配灵感。'}</p>
         <div>
           <span>{result.owned_count} 件来自我的衣橱</span>
           <b>
@@ -318,8 +312,8 @@ export default function AIConversation({
   proposalPreviews = {},
 }: AIConversationProps) {
   const c = useConversation(api, owner);
-  const [message, setMessage] = useState(""),
-    [localError, setLocalError] = useState(""),
+  const [message, setMessage] = useState(''),
+    [localError, setLocalError] = useState(''),
     [preparing, setPreparing] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [unread, setUnread] = useState(false);
@@ -328,19 +322,19 @@ export default function AIConversation({
     alt: string;
   } | null>(null);
   const imageUrls = [
-    ...items.map((item) => item.image || ""),
+    ...items.map((item) => item.image || ''),
     ...Object.values(proposalPreviews).map(
-      (preview) => preview.asset.download_url || "",
+      (preview) => preview.asset.download_url || '',
     ),
   ].filter(Boolean);
   const onImage = (url: string, alt: string) => setViewingImage({ url, alt });
   useEffect(() => {
     if (!viewingImage) return;
     const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setViewingImage(null);
+      if (event.key === 'Escape') setViewingImage(null);
     };
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
   }, [viewingImage]);
   const viewport = useRef<HTMLDivElement>(null),
     follow = useRef(true),
@@ -348,7 +342,7 @@ export default function AIConversation({
   const lastCallback = useRef<Record<string, string>>({});
   const latest = c.tasks.at(-1);
   const active = c.tasks.find(taskIsWorking);
-  const waiting = c.tasks.find((task) => task.status === "needs_input");
+  const waiting = c.tasks.find((task) => task.status === 'needs_input');
   const busy = preparing || c.submitting;
   useEffect(() => {
     if (initialPrompt) {
@@ -395,7 +389,7 @@ export default function AIConversation({
   }, [contentVersion]);
   useEffect(() => {
     const element = viewport.current;
-    if (!element || typeof ResizeObserver === "undefined") return;
+    if (!element || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => {
       if (follow.current) toBottom();
     });
@@ -408,11 +402,11 @@ export default function AIConversation({
     if (!text || busy || active || c.pending || !enabled || !items.length)
       return;
     setPreparing(true);
-    setLocalError("");
+    setLocalError('');
     try {
       const snapshot = waiting ? draft : await flush();
       await c.send(text, snapshot);
-      setMessage("");
+      setMessage('');
       follow.current = true;
       toBottom();
     } catch (error) {
@@ -422,14 +416,14 @@ export default function AIConversation({
     }
   };
   const recover = async () => {
-    setLocalError("");
+    setLocalError('');
     try {
       await c.recover();
     } catch (error) {
       setLocalError(errorMessage(error));
     }
   };
-  const suggestions = ["明天上课怎么穿", "保留外套，换个搭法"];
+  const suggestions = ['明天上课怎么穿', '保留外套，换个搭法'];
   return (
     <section className="ai-conversation" aria-label="AI 穿搭对话">
       <header className="ai-chat-header">
@@ -497,7 +491,7 @@ export default function AIConversation({
               c.events[task.id] || [],
               c.messages[task.id],
             );
-            const hasUser = parts.some((part) => part.type === "user");
+            const hasUser = parts.some((part) => part.type === 'user');
             return (
               <article
                 className="ai-round"
@@ -506,7 +500,7 @@ export default function AIConversation({
               >
                 {!hasUser && (
                   <div className="ai-user-message">
-                    {c.messages[task.id] || "帮我搭一套"}
+                    {c.messages[task.id] || '帮我搭一套'}
                   </div>
                 )}
                 {!hasUser && (
@@ -515,7 +509,7 @@ export default function AIConversation({
                   </div>
                 )}
                 {parts.map((part) => {
-                  if (part.type === "user") {
+                  if (part.type === 'user') {
                     return (
                       <div className="ai-native-user-turn" key={part.id}>
                         <div className="ai-user-message">{part.text}</div>
@@ -525,17 +519,17 @@ export default function AIConversation({
                       </div>
                     );
                   }
-                  if (part.type === "text")
+                  if (part.type === 'text')
                     return (
                       <div
-                        className={`ai-assistant-message ${part.phase === "final" ? "ai-final-answer" : ""}`}
+                        className={`ai-assistant-message ${part.phase === 'final' ? 'ai-final-answer' : ''}`}
                         key={part.id}
                       >
-                        {part.phase === "final" && (
+                        {part.phase === 'final' && (
                           <span className="ai-final-label">给你的搭配建议</span>
                         )}
                         <Markdown
-                          text={part.text}
+                          text={displayAgentText(part.text)}
                           imageUrls={imageUrls}
                           onImage={onImage}
                         />
@@ -558,7 +552,7 @@ export default function AIConversation({
                     />
                   );
                 })}
-                {task.status === "succeeded" && (
+                {task.status === 'succeeded' && (
                   <ProposalCard
                     task={task}
                     items={items}
@@ -569,20 +563,26 @@ export default function AIConversation({
                     preview={proposalPreviews[task.id]}
                   />
                 )}
-                {task.status === "needs_input" && task.question && (
-                  <div className="ai-assistant-message">
-                    <Markdown
-                      text={task.question}
-                      imageUrls={imageUrls}
-                      onImage={onImage}
-                    />
-                  </div>
-                )}
+                {task.status === 'needs_input' &&
+                  task.question &&
+                  !parts.some(
+                    (part) =>
+                      part.type === 'text' &&
+                      displayAgentText(part.text) === task.question,
+                  ) && (
+                    <div className="ai-assistant-message">
+                      <Markdown
+                        text={task.question}
+                        imageUrls={imageUrls}
+                        onImage={onImage}
+                      />
+                    </div>
+                  )}
                 {taskIsWorking(task) && (
                   <div className="ai-task-status" role="status">
                     <LoaderCircle size={13} className="ai-spin" />
                     {task.cancel_requested_at
-                      ? "正在停止，请稍等"
+                      ? '正在停止，请稍等'
                       : labels[task.status]}
                     <button
                       disabled={!!task.cancel_requested_at}
@@ -593,16 +593,16 @@ export default function AIConversation({
                     </button>
                   </div>
                 )}
-                {task.status === "failed" && (
+                {task.status === 'failed' && (
                   <p className="ai-inline-error" role="alert">
                     {task.error?.message ||
-                      "这次搭配没有完成，可以调整想法后再试。"}
+                      '这次搭配没有完成，可以调整想法后再试。'}
                   </p>
                 )}
-                {task.status === "cancelled" && (
+                {task.status === 'cancelled' && (
                   <p className="ai-round-note">已停止本次搭配</p>
                 )}
-                {task.status === "unconfirmed" && (
+                {task.status === 'unconfirmed' && (
                   <p className="ai-round-note">结果尚未确认，请先恢复查询。</p>
                 )}
               </article>
@@ -613,8 +613,8 @@ export default function AIConversation({
               <div className="ai-user-message">{c.pending.message}</div>
               <p className="ai-round-note">
                 {c.submitting
-                  ? "正在发送…"
-                  : "提交结果待确认，请恢复上次提交。"}
+                  ? '正在发送…'
+                  : '提交结果待确认，请恢复上次提交。'}
               </p>
             </article>
           )}
@@ -641,13 +641,13 @@ export default function AIConversation({
             恢复上次提交
           </button>
         )}
-        {latest?.status === "unconfirmed" && !c.pending && (
+        {latest?.status === 'unconfirmed' && !c.pending && (
           <button className="ai-recover" onClick={() => void recover()}>
             <RefreshCw size={14} />
             查询最新状态
           </button>
         )}
-        {c.error.includes("登录") && (
+        {c.error.includes('登录') && (
           <a className="ai-login" href="/api/v1/auth/login?return_to=/">
             重新登录并恢复对话
           </a>
@@ -686,19 +686,19 @@ export default function AIConversation({
         >
           <textarea
             ref={input}
-            aria-label={waiting ? "补充你的搭配要求" : "告诉 MUSE 你的穿搭想法"}
+            aria-label={waiting ? '补充你的搭配要求' : '告诉 MUSE 你的穿搭想法'}
             rows={1}
             maxLength={2000}
-            placeholder={waiting ? "补充一点你的想法…" : "说说今天的穿搭想法…"}
+            placeholder={waiting ? '补充一点你的想法…' : '说说今天的穿搭想法…'}
             value={message}
             onChange={(event) => {
               setMessage(event.target.value);
-              event.target.style.height = "auto";
+              event.target.style.height = 'auto';
               event.target.style.height = `${Math.min(event.target.scrollHeight, 112)}px`;
             }}
             onKeyDown={(event) => {
               if (
-                event.key === "Enter" &&
+                event.key === 'Enter' &&
                 !event.shiftKey &&
                 !event.nativeEvent.isComposing
               ) {
@@ -710,7 +710,7 @@ export default function AIConversation({
           <button
             className="ai-send"
             type="submit"
-            aria-label={waiting ? "补充并继续搭配" : "发送消息"}
+            aria-label={waiting ? '补充并继续搭配' : '发送消息'}
             disabled={
               !message.trim() ||
               busy ||
