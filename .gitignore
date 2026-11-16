@@ -3,3 +3,21 @@ dist
 .DS_Store
 *.local
 *.tsbuildinfo
+
+# Local credentials and developer state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+.vscode/
+.idea/
+coverage/
+
+# Local model inputs, account exports and deployment archives
+uploads/
+private-data/
+*-deploy.tar.gz

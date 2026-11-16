@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --experimental-strip-types --test src/sceneOutfits.test.mjs server/reference/protocol.test.mjs skills/qoder-cloud-agent/scripts/request.test.mjs",
+    "check": "npm test && npm run build"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -23,5 +25,8 @@
     "typescript": "~5.9.3",
     "vite": "^7.1.9",
     "@stylexjs/unplugin": "0.19.1"
+  },
+  "engines": {
+    "node": ">=22.18.0 <25"
   }
 }
