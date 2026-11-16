@@ -1,75 +1,82 @@
 # MUSE 团队开发交接
 
-从 [SPEC.md](SPEC.md) 开始，随后按岗位读 [API合同](contracts/openapi.json)、[Qoder skill](../skills/qoder-cloud-agent/SKILL.md)、[Seedream试穿](SEEDREAM_TRYON.md)。规范版本v1.0，2026-11-16。旧IMPLEMENTATION_PLAN仅保留历史参考。
+规范 v1.1，2026-11-16。先按 [LOCAL_DEVELOPMENT](LOCAL_DEVELOPMENT.md) 启动，再读 [SPEC](SPEC.md)、[OpenAPI](contracts/openapi.json) 和负责模块源码。早期 `IMPLEMENTATION_PLAN.md`、`src/integrations/contracts.ts` 仅保留历史参考。
 
-## 可以现在运行的内容
+## 已交付的开发基线
 
-项目要求Node22；前端工程位于仓库根目录：
+React/Lenso 前端已增加 Live 数据源和任务恢复；Fastify、PostgreSQL、独立 Worker、私有本地图片、Qoder 两工具、Seedream 单件/整套和 Memory 同步均有实际实现。数据库中的业务事实与浏览器演示数据分开，切换演示不会伪装成真实任务成功。
+
+已真实验证：Qoder 五件搭配候选和只读 Memory 挂载；Seedream 单件适配器请求、经 API/Worker 的五件整套生成及私有结果保存；Memory Store 建立、偏好文件同步与远端读回。Dream 未真实执行，生产身份/对象存储/商品源/自动识别/实时视频未完成。
+
+## 文件所有权与下一步
+
+| 工作流     | 当前入口                                                         | 后续重点                                                              |
+| ---------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 前端       | `src/Application.tsx`、`LiveApp.tsx`、`api/`、`hooks/useTask.ts` | 真机恢复、空衣橱、设置/反馈界面、旧记录迁移；只由一位整合者改全局状态 |
+| API / 数据 | `apps/api/`、`packages/db/`、`packages/domain/`                  | 正式 OIDC、对象存储适配、完整账户删除、限流与运营观测                 |
+| Qoder      | `packages/qoder/`、`apps/worker/runtime.mjs`                     | 新 Agent 版本、工具恢复回归、费用对账；不要重写一套平行协议           |
+| 图片       | `packages/seedream/`、`skills/seedream-tryon/`                   | 代表性样本质量评估、输出/成本记录、物件遮挡与复杂叠穿                 |
+| Memory     | `packages/qoder/memory.mjs`、`apps/worker/memory-command.mjs`    | 同步错误恢复、隐私清理、Dream 租户隔离与派生摘要来源                  |
+| 商品       | SPEC 第9节，当前没有真实适配器                                   | 一个获授权的数据源、SKU/价格快照、预算与尺码规则                      |
+
+后端当前用 Node ESM `.mjs`，前端用 TypeScript。OpenAPI v1.1 是公开合同；前端 API 类型与服务端校验需同时保持一致。不要创建同名但不同字段的第二套合同，也不要为了目录整齐搬动现有前端。
+
+## 每位同学的第一次验证
 
 ```sh
 npm ci
-npm run dev -- --port 5179
+# 仅首次：从 .env.example 建立自己的服务端 .env，配置 SESSION_SECRET
+npm run dev:full
+npm run test:db
 npm run build
-node --experimental-strip-types --test src/sceneOutfits.test.mjs
-node --test server/reference/protocol.test.mjs
-node --test skills/qoder-cloud-agent/scripts/request.test.mjs
 ```
 
-前端当前使用本地数据。`server/reference/`只有协议参考，没有Fastify服务器、登录、数据库或真实云资源。不要给参考代码写一个.env后就宣称全链路接通。
+先验证空衣橱→上传→手动录入→编辑草稿→保存。需要体验素材时显式运行 `npm run demo:seed`，不要默认加载成真实个人资产。再用自己的开发资源开启 AI。数据库测试使用 `muse_test`，不调用付费模型。
 
-## 分工与接口边界
+Qoder setup、Memory provisioning 及实际图片生成会接触真实资源，按当前开发任务授权执行；不要为验证文档额外创建生产资源或反复生成。`npm run qoder:setup` 默认预览，只有 `--execute` 才联网准备资源。
 
-| 工作流 | 负责范围 | 首个可合并任务 |
-|---|---|---|
-| 前端 | src/components、状态层、API client | 用OpenAPI生成类型/Mock，替换衣橱和任务状态的数据源，保留示例模式 |
-| 后端 | apps/api、apps/worker（待建）、数据库迁移 | 登录、media/garments/draft CRUD、owner过滤、revision与幂等 |
-| Qoder | Agent配置、事件消费、工具执行器、Memory | read_wardrobe/propose_outfit最小闭环，断线恢复与越权测试 |
-| 图片 | Seedream adapter、试穿任务、产物存储 | 1张人物+1件上装的真实联调，记录样本质量和费用 |
-| 商品 | 授权商品适配器、预算和尺码规则 | 返回真实SKU快照及来源时间，不要求多个平台同时接通 |
+## 配置边界
 
-建议后端新增apps/api与apps/worker共用packages/contracts、packages/domain；不要现在为了目录整齐搬动现有前端。现有src/integrations/contracts.ts是早期原型草案（camelCase与旧路由），已标deprecated；新开发不能以它生成服务端接口。OpenAPI是对外契约，内部ORM自由选择但不能改变金额、归属、版本和任务语义。
+| 当前配置                                                          | 谁使用            | 约定                                                     |
+| ----------------------------------------------------------------- | ----------------- | -------------------------------------------------------- |
+| `APP_ORIGIN` / `APP_ORIGINS`                                      | API               | 精确浏览器来源白名单；手机 IP 改变后更新并重启           |
+| `DATABASE_URL` / `TEST_DATABASE_URL`                              | API/Worker / 测试 | 业务库与测试库分开，测试库名以 `muse_test` 开头          |
+| `SESSION_SECRET` / `DEV_AUTH_ENABLED`                             | API               | 本地会话；生产启动目前禁止                               |
+| `MEDIA_ROOT`                                                      | API/Worker        | 默认 `.local/media`，仅私有文件，不提交                  |
+| `QODER_ACCESS_TOKEN`                                              | Qoder / setup     | PAT 或已置换 SAT；不支持把 SA Key 直接作为业务 Bearer    |
+| `QODER_AGENT_ID` / `QODER_AGENT_VERSION` / `QODER_ENVIRONMENT_ID` | Worker            | 按任务固定资源版本；setup 不自动升级已有同名 Agent       |
+| `QODER_MAX_CREDIT_COST` / `DAILY_TASK_LIMIT`                      | API/Worker        | Session credits 上限与本地任务数额度，二者不等价于人民币 |
+| `ARK_API_KEY` / `ARK_IMAGE_MODEL` / `TRYON_ENABLED`               | 图片 Worker/API   | 已开通的模型，默认单次一张输出                           |
+| `MEMORY_ENABLED` / `DREAM_ENABLED`                                | API/Worker        | Memory 需用户 Store；Dream 默认关闭且未实测              |
 
-## 配置变量（仅名称与示例，不含密钥）
+OIDC、S3/TOS/OSS、生产 SAT 自动刷新、Decart 的配置属于后续实现，不要求新同学先填一整套暂未消费的环境变量。所有凭据仅在服务器读取；禁止 `VITE_` 密钥、源码明文、运行日志和截图泄漏。
 
-| 变量 | 谁使用 | 说明 |
-|---|---|---|
-| APP_ORIGIN | API | 自有HTTPS域名；开发为本地 |
-| DATABASE_URL | API/Worker | PostgreSQL连接，仅服务端 |
-| OIDC_ISSUER / OIDC_CLIENT_ID / OIDC_CLIENT_SECRET | API | 选定身份提供方，回调同源 |
-| SESSION_SECRET | API | cookie/session密钥，按环境独立 |
-| OBJECT_ENDPOINT / OBJECT_BUCKET / OBJECT_REGION | API/Worker | 私有S3兼容存储配置 |
-| OBJECT_ACCESS_KEY_ID / OBJECT_SECRET_ACCESS_KEY | API/Worker | 最小权限对象存储凭据 |
-| QODER_ACCESS_TOKEN | 开发脚本 | PAT或已置换SAT，只存在服务端环境 |
-| QODER_SA_KEY | 生产Worker | 用官方SDK/认证接口置换SAT，不直接调用业务API |
-| QODER_AGENT_ID / QODER_AGENT_VERSION / QODER_ENVIRONMENT_ID | Worker | 真实资源与固定版本 |
-| QODER_MAX_CREDIT_COST | Worker | 每任务credit上限，按实测配置 |
-| ARK_API_KEY / ARK_IMAGE_MODEL | 图片Worker | 已开通Model/Endpoint，默认候选见Seedream文档 |
-| TRYON_ENABLED / DREAM_ENABLED | API/Worker | 通过验收后才打开；默认false |
-| DECART_API_KEY / DECART_MODEL_ID | 后续实时Worker/API | 可选；当前不启用 |
+## 不可破坏的合同
 
-API Key不能使用VITE_前缀，也不能写进manifest、Git或前端配置。提交.env.example只留空值和说明；真实.env忽略。同学各自使用dev资源，不分享生产PAT。
+- 客户端只发记录 ID；owner 从会话取得。跨用户衣物、图片、任务、Store 不可引用。
+- 草稿保存使用 `expected_revision`；任务绑定 `draft_id/draft_revision` 快照。候选采纳是单独的用户动作。
+- 创建/保存带 `Idempotency-Key`。同键异内容返回 409；网络响应丢失用原键查询，不能创建第二次副作用。
+- 图片任务必须有 `mode=single|outfit`；single 要求 `target_slot`，outfit 禁止该字段并使用非空草稿槽位。两者都用原始人物图。
+- Qoder complete 事件先持久化；仅执行最新 requires_action 指定的 `evt_`；工具结果先存后回传。消息对账只匹配本轮新增事件。
+- Worker 租约带令牌；旧进程不能提交新执行者的结果。生成检查点与已保存结果可恢复，未知 POST 不自动再发。
+- 原图删除要使相关生成结果不可下载；生成结果发布与取消/输入状态复查在同一事务内。
+- Memory 写入先有明确用户记录。更新/删除与同步共用用户锁，不能吞掉较新的删除；Dream 不自动运行。
 
-## 使用Qoder skill
+## 使用两个接入 skill
 
-开发工具支持项目skill时，直接读取 `skills/qoder-cloud-agent/SKILL.md`。Codex可复制整个 `qoder-cloud-agent` 目录到 `~/.codex/skills/`；其他工具不确定发现目录时直接把文件路径交给Agent读取，不臆造专用配置路径。
+- [Qoder skill](../skills/qoder-cloud-agent/SKILL.md)：Managed API、事件、Custom Tools、Memory/Dream；应用入口在 `packages/qoder` 与 Worker。
+- [Seedream skill](../skills/seedream-tryon/SKILL.md)：输入语义、图序、单次请求与产物恢复；应用入口在 `packages/seedream`。
 
-可交给开发Agent的任务：
+它们给开发同学和开发 Agent 使用，不上传给面向终端用户的穿搭 Agent，也不附带平台凭据。可复制整个 skill 目录给支持该机制的开发工具；独立使用时遵循 skill 内的依赖说明。
 
-> 读取docs/SPEC.md和skills/qoder-cloud-agent/SKILL.md，为MUSE实现Qoder Managed API适配器与read_wardrobe/propose_outfit工具循环。先用离线mock完成测试，凭据只从服务端环境读取。不要新建生产资源或执行付费任务。输出改动、测试结果和需要真实联调的配置项。
+可交给下一位开发者的任务示例：
 
-这个skill是给**开发同学/开发Agent**用的，不是让穿搭Agent在运行时获得平台管理员凭据；不要把它连同服务端密钥挂载给MUSE用户的Session。
+> 读取 SPEC、OpenAPI 和当前负责模块，为一个明确缺口提交小型变更。保持已有成功结构与恢复语义；先用模拟上游和真实测试库验证正常及失败路径，不调用真实模型。报告改动、测试、影响的接口和真实联调前提。
 
-## 联调顺序
+## PR 与发布标准
 
-1. 确认OpenAPI可导入，前端用mock切通成功/失败/取消/刷新场景。
-2. 后端提供dev身份、测试衣橱、任务快照和事件流；两账号越权用例先通过。
-3. Qoder开发者用自己的dev凭据列出模型/Agent/Environment，明确选定资源；先单任务两工具，再做重连和重复回传。
-4. 图片开发者用有授权照片和衣服，先验证单件换装、产物转存、超时不重复生成，再做多件。
-5. 接Memory，Dream隔离没验收时保持关闭。
-6. staging自有HTTPS站真机测试，配置真实额度、日志、备份与删除周期，再开启给用户。
+每个 PR 标明关联接口、状态变化、错误路径、验证命令和剩余限制。字段变更先更新 OpenAPI，再同步服务端与前端。普通文案或样式不增加无意义测试；状态、权限和副作用改动必须覆盖实际风险。
 
-## 完成定义
+本地最低检查为 `npm run test:db`、`npm run build`；CI 用 Node 22 与 PostgreSQL 执行检查。真实接入、模型质量和实体手机测试分别记录，不能互相替代。共享代码包不含 `.env`、`.local`、个人媒体、带签名 URL、`node_modules` 或 Git 凭据。
 
-PR必须带关联SPEC/API、真实与mock边界、至少一个错误路径的测试。接口字段变化先更新OpenAPI。没有真实上游请求返回的结果，不写“已接通”；没有真机测试，不写“iOS已验收”。照片、授权链接和凭据不放PR说明或测试截图。
-
-开发包仅包括文档、OpenAPI、skill和协议参考，不是完整后端。原型源码在项目仓库；可分享的zip不包含node_modules、.env、Git凭据或用户本地存储。
+公开 Sites 不随 GitHub 推送自动更新，也不托管当前 Node Worker/PostgreSQL。正式发布前完成 SPEC 的生产待办；本机联调成功不等于可直接公网运营。

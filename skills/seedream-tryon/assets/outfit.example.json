@@ -1,0 +1,82 @@
+{
+  "mode": "outfit",
+  "person": {
+    "asset_id": "demo-original-person",
+    "kind": "person",
+    "mime": "image/png",
+    "file": "fixtures/person.png"
+  },
+  "snapshot": {
+    "draft_id": "demo-draft",
+    "draft_revision": 1,
+    "slots": {
+      "coat": {
+        "asset_id": "asset-navy",
+        "ref_id": "navy"
+      },
+      "top": {
+        "asset_id": "asset-tee",
+        "ref_id": "tee"
+      },
+      "bottom": {
+        "asset_id": "asset-trouser",
+        "ref_id": "trouser"
+      },
+      "shoes": {
+        "asset_id": "asset-shoe",
+        "ref_id": "shoe"
+      },
+      "bag": {
+        "asset_id": "asset-bag",
+        "ref_id": "bag"
+      }
+    }
+  },
+  "garments": [
+    {
+      "slot": "coat",
+      "asset_id": "asset-navy",
+      "ref_id": "navy",
+      "name": "navy",
+      "garment_kind": "coat",
+      "mime": "image/png",
+      "file": "fixtures/navy.png"
+    },
+    {
+      "slot": "top",
+      "asset_id": "asset-tee",
+      "ref_id": "tee",
+      "name": "tee",
+      "garment_kind": "knit",
+      "mime": "image/png",
+      "file": "fixtures/tee.png"
+    },
+    {
+      "slot": "bottom",
+      "asset_id": "asset-trouser",
+      "ref_id": "trouser",
+      "name": "trouser",
+      "garment_kind": "trousers",
+      "mime": "image/png",
+      "file": "fixtures/trouser.png"
+    },
+    {
+      "slot": "shoes",
+      "asset_id": "asset-shoe",
+      "ref_id": "shoe",
+      "name": "shoe",
+      "garment_kind": "shoes",
+      "mime": "image/png",
+      "file": "fixtures/shoe.png"
+    },
+    {
+      "slot": "bag",
+      "asset_id": "asset-bag",
+      "ref_id": "bag",
+      "name": "bag",
+      "garment_kind": "bag",
+      "mime": "image/png",
+      "file": "fixtures/bag.png"
+    }
+  ]
+}

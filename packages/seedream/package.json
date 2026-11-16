@@ -1,0 +1,9 @@
+{
+  "name": "@muse/seedream",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "exports": "./index.mjs",
+  "engines": { "node": ">=22.18.0" },
+  "peerDependencies": { "sharp": ">=0.35.5 <1" }
+}

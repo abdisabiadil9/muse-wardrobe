@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MUSE Application API",
-    "version": "1.0.0",
-    "description": "待实现开发契约；不是Qoder/Ark上游API。金额单位分；身份由服务端session决定；默认全部私有。"
+    "version": "1.1.0",
+    "description": "MUSE首版本地AI服务契约。金额单位分；身份由服务端session决定。已实现范围与真实联调状态见LOCAL_DEVELOPMENT.md；OIDC、购买搜索及Decart为后续接口。"
   },
   "servers": [
     {
@@ -1130,6 +1130,10 @@
                   "expected_revision": {
                     "type": "integer",
                     "minimum": 0
+                  },
+                  "garment_kind": {
+                    "type": "string",
+                    "maxLength": 80
                   }
                 },
                 "required": [
@@ -1253,7 +1257,7 @@
                     },
                     "upload_url": {
                       "type": "string",
-                      "format": "uri"
+                      "format": "uri-reference"
                     },
                     "method": {
                       "type": "string",
@@ -2467,15 +2471,50 @@
                   "consent_version": {
                     "type": "string",
                     "const": "tryon-photo-v1"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "single",
+                      "outfit"
+                    ],
+                    "description": "single仅替换原始人物照的一件；outfit按完整草稿快照换装。"
+                  },
+                  "target_slot": {
+                    "$ref": "#/components/schemas/Category"
                   }
                 },
                 "required": [
                   "draft_id",
                   "draft_revision",
                   "person_asset_id",
-                  "consent_version"
+                  "consent_version",
+                  "mode"
                 ],
-                "additionalProperties": false
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "mode": {
+                          "const": "single"
+                        }
+                      }
+                    },
+                    "then": {
+                      "required": [
+                        "target_slot"
+                      ]
+                    },
+                    "else": {
+                      "not": {
+                        "required": [
+                          "target_slot"
+                        ]
+                      }
+                    }
+                  }
+                ]
               }
             }
           }
@@ -4319,6 +4358,130 @@
           }
         ]
       }
+    },
+    "/media/{id}/content": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "token",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "上传票据或资产详情返回的短期签名；仍须同一用户会话"
+        }
+      ],
+      "get": {
+        "operationId": "downloadPrivateMedia",
+        "summary": "读取当前用户的私有图片",
+        "responses": {
+          "200": {
+            "description": "图片二进制",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "凭证失效或资源无权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "凭证失效或资源无权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "uploadPrivateMedia",
+        "summary": "按上传票据提交图片；须再调用 complete 校验",
+        "description": "使用同一用户会话和上传签名；Origin 必须匹配。该签名替代此二进制上传的 CSRF header。最大10MiB。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "接收成功，等待 complete"
+          },
+          "403": {
+            "description": "凭证失效或资源无权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "凭证失效或资源无权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4409,8 +4572,8 @@
           },
           "download_url": {
             "type": "string",
-            "format": "uri",
-            "description": "短期签名链接，不永久缓存"
+            "format": "uri-reference",
+            "description": "短期访问地址；本地同源相对路径或对象存储签名绝对URL，不永久缓存。"
           },
           "expires_at": {
             "type": "string",
@@ -4504,6 +4667,11 @@
               "upload",
               "product"
             ]
+          },
+          "garment_kind": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "具体衣物类型，如针织衫、围巾、手提包；由用户确认。"
           }
         },
         "required": [
@@ -4566,6 +4734,11 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "garment_kind": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "具体衣物类型，如针织衫、围巾、手提包；由用户确认。"
           }
         },
         "required": [
@@ -4784,6 +4957,9 @@
           "new_cost_fen": {
             "type": "integer",
             "minimum": 0
+          },
+          "slots": {
+            "$ref": "#/components/schemas/Slots"
           }
         },
         "required": [
@@ -4794,7 +4970,8 @@
           "garment_ids",
           "reason",
           "owned_count",
-          "new_cost_fen"
+          "new_cost_fen",
+          "slots"
         ],
         "additionalProperties": false
       },
@@ -4821,6 +4998,30 @@
           },
           "prompt_version": {
             "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "single",
+              "outfit"
+            ]
+          },
+          "target_slot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Category"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "person_asset_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slots": {
+            "$ref": "#/components/schemas/Slots"
           }
         },
         "required": [
@@ -4829,7 +5030,10 @@
           "draft_id",
           "draft_revision",
           "model",
-          "prompt_version"
+          "prompt_version",
+          "mode",
+          "person_asset_id",
+          "slots"
         ],
         "additionalProperties": false
       },
@@ -5018,7 +5222,10 @@
             "$ref": "#/components/schemas/TaskStatus"
           },
           "stage": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "progress": {
             "type": [

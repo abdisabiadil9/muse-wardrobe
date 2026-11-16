@@ -20,4 +20,6 @@ coverage/
 # Local model inputs, account exports and deployment archives
 uploads/
 private-data/
+.local/
+.artifacts/
 *-deploy.tar.gz

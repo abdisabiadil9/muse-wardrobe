@@ -47,6 +47,12 @@ node scripts/request.mjs stream --session sess_REAL_ID --last-event-id evt_REAL_
 
 生产可使用官方`qca-sdk`的`ManagedClient`并锁版本。脚本只是可审查的协议调用入口，不替代完整生产运行时。
 
+## MUSE 仓库的当前实现（独立复制 skill 时可忽略）
+
+应用已提供 `packages/qoder/agent.mjs` 的 Agent 定义、`packages/qoder/client.mjs` 的 Managed API 扩展、`packages/qoder/memory.mjs` 的同步/Dream逻辑，以及 `apps/worker/runtime.mjs` 的持久工具循环；无需从参考脚本再搭一套平行服务。业务入口见项目 `docs/LOCAL_DEVELOPMENT.md` 与 `docs/SPEC.md`。
+
+`npm run qoder:setup` 默认只预览；显式 `--execute` 才准备开发资源并固定版本。Memory 通过 `npm run memory -- provision <用户UUID>` 显式配置。MUSE 已真实验证两工具搭配和 Memory 读写；Dream 仅有离线验证和手动路径，默认关闭，不能宣称租户隔离与派生摘要删除已完成。这里的应用状态不改变本 skill 随附脚本的离线默认行为。
+
 ## 开发完成标准
 
 验证：跨用户引用被拒绝；工具重复事件不重复执行；未知写入先对账；断线/刷新恢复；没有有效候选不假成功；Dream副本提升和并发更新正确。报告必须区分离线测试、已实际发出的请求和待配置项。权限/认证失败停止该线上分支；未确认的写入保留原任务ID，不换key/账号“试到成功”。

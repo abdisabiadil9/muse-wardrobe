@@ -1,0 +1,11 @@
+{
+  "source": "public/images/tryon.png",
+  "source_sha256": "d5082512d24105dd2ac246cebab53ee159ad8c38e06fd3ba6626297bbb3c14dd",
+  "crop_rect": {
+    "x": 0,
+    "y": 0,
+    "width": 512,
+    "height": 1024
+  },
+  "purpose": "Existing generated demo model; first panel before demo garment changes. Not a real user photo."
+}

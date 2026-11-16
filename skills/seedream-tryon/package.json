@@ -1,0 +1,9 @@
+{
+  "name": "seedream-tryon-skill",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.18.0" },
+  "scripts": { "test": "node --test scripts/request.test.mjs" },
+  "dependencies": { "sharp": "0.35.5" }
+}

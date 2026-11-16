@@ -1,117 +1,2322 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, ArrowUpRight, Bookmark, Camera, Check, CheckCheck, ChevronDown, ChevronRight, Compass, House, Heart, ImagePlus, Layers, LayoutGrid, LockKeyhole, Menu, MoreHorizontal, Plus, RefreshCw, Search, ShieldCheck, Shirt, SlidersHorizontal, Sparkles, Sun, UnlockKeyhole, UserRound, Video, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  Bookmark,
+  Camera,
+  Check,
+  CheckCheck,
+  ChevronDown,
+  ChevronRight,
+  Compass,
+  House,
+  Heart,
+  ImagePlus,
+  Layers,
+  LayoutGrid,
+  LockKeyhole,
+  Menu,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Shirt,
+  SlidersHorizontal,
+  Sparkles,
+  Sun,
+  UnlockKeyhole,
+  UserRound,
+  Video,
+  X,
+} from 'lucide-react';
 import StyleStudio, { type CanvasLayout } from './components/StyleStudio';
 import ClosetGallery from './components/ClosetGallery';
 import AddItems from './components/AddItems';
 import TodayHome from './components/TodayHome';
 import WardrobePicker from './components/WardrobePicker';
 import { MobileTabBar, WardrobeSheet } from './components/MobileChrome';
-import { hasSceneChanges, hydrateSceneState, normalizeOutfit, openLookInScene, rememberCurrentScene, restoreSceneRecommendation, scenePresets, switchScene, toSceneName, type SceneState } from './sceneOutfits';
-import { categories, garments, initialOutfit, slotNames, styles, type Category, type Garment, type Outfit, type Slot } from './data';
+import {
+  hasSceneChanges,
+  hydrateSceneState,
+  normalizeOutfit,
+  openLookInScene,
+  rememberCurrentScene,
+  restoreSceneRecommendation,
+  scenePresets,
+  switchScene,
+  toSceneName,
+  type SceneState,
+} from './sceneOutfits';
+import {
+  categories,
+  garments,
+  initialOutfit,
+  slotNames,
+  styles,
+  type Category,
+  type Garment,
+  type Outfit,
+  type Slot,
+} from './data';
 
-type Page = 'today'|'discover'|'closet'|'outfit'|'mine'|'style'|'product'|'tryon'|'recommendations';
-type Saved = {id:string;title:string;outfit:Outfit;scene:string;worn?:string;canvasLayout?:CanvasLayout};
-type Persisted = SceneState & {favorites:string[];styleLikes:string[];saved:Saved[];uploads:Garment[];palette:string;feedback:Record<string,string>;locks:Slot[]};
-const defaults:Persisted={outfit:initialOutfit,favorites:[],styleLikes:[],saved:[{id:'demo-look-1',title:'示例 · 日常层次',outfit:{...initialOutfit},scene:'轻松日常'},{id:'demo-look-2',title:'示例 · 一点红色',outfit:{...initialOutfit,coat:'lilac-cardigan',top:'red-knit',bottom:'jeans'},scene:'周末漫步'},{id:'demo-look-3',title:'示例 · 清浅配色',outfit:{...initialOutfit,coat:'navy',bottom:'mint-pants'},scene:'见面时刻'}],uploads:[],scene:'轻松日常',palette:'自然暖调',feedback:{},locks:[]};
-const storageKey='muse-mobile-v1';
-const slotFor=(g:Garment):Slot=>({外套:'coat',上装:'top',下装:'bottom',鞋履:'shoes',配饰:'bag'} as Record<Category,Slot>)[g.category];
-const load=():Persisted=>{try {const value=JSON.parse(localStorage.getItem(storageKey)||'null');return hydrateSceneState(value?{...defaults,...value,outfit:normalizeOutfit(value.outfit||initialOutfit),saved:(value.saved||[]).map((s:Saved)=>({...s,outfit:normalizeOutfit(s.outfit)}))}:{...defaults});}catch{return hydrateSceneState({...defaults});}};
-const pageParam=new URLSearchParams(location.search).get('screen');
-const localDay=()=>{const d=new Date();return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`};
-const demoSteps=[{label:'今日搭配',detail:'打开就看到今天要穿的这一套。',page:'today'}, {label:'从衣橱选衣',detail:'挑选自己的衣服，回到首页看组合。',page:'closet'}, {label:'调整与试穿',detail:'调整排版，预览这套衣服的感觉。',page:'outfit'}, {label:'寻找灵感',detail:'想换种风格时，再来这里逛逛。',page:'discover'}] as const;
+type Page =
+  | 'today'
+  | 'discover'
+  | 'closet'
+  | 'outfit'
+  | 'mine'
+  | 'style'
+  | 'product'
+  | 'tryon'
+  | 'recommendations';
+type Saved = {
+  id: string;
+  title: string;
+  outfit: Outfit;
+  scene: string;
+  worn?: string;
+  canvasLayout?: CanvasLayout;
+};
+type Persisted = SceneState & {
+  favorites: string[];
+  styleLikes: string[];
+  saved: Saved[];
+  uploads: Garment[];
+  palette: string;
+  feedback: Record<string, string>;
+  locks: Slot[];
+};
+const defaults: Persisted = {
+  outfit: initialOutfit,
+  favorites: [],
+  styleLikes: [],
+  saved: [
+    {
+      id: 'demo-look-1',
+      title: '示例 · 日常层次',
+      outfit: { ...initialOutfit },
+      scene: '轻松日常',
+    },
+    {
+      id: 'demo-look-2',
+      title: '示例 · 一点红色',
+      outfit: {
+        ...initialOutfit,
+        coat: 'lilac-cardigan',
+        top: 'red-knit',
+        bottom: 'jeans',
+      },
+      scene: '周末漫步',
+    },
+    {
+      id: 'demo-look-3',
+      title: '示例 · 清浅配色',
+      outfit: { ...initialOutfit, coat: 'navy', bottom: 'mint-pants' },
+      scene: '见面时刻',
+    },
+  ],
+  uploads: [],
+  scene: '轻松日常',
+  palette: '自然暖调',
+  feedback: {},
+  locks: [],
+};
+const storageKey = 'muse-mobile-v1';
+const slotFor = (g: Garment): Slot =>
+  (
+    ({
+      外套: 'coat',
+      上装: 'top',
+      下装: 'bottom',
+      鞋履: 'shoes',
+      配饰: 'bag',
+    }) as Record<Category, Slot>
+  )[g.category];
+const load = (): Persisted => {
+  try {
+    const value = JSON.parse(localStorage.getItem(storageKey) || 'null');
+    return hydrateSceneState(
+      value
+        ? {
+            ...defaults,
+            ...value,
+            outfit: normalizeOutfit(value.outfit || initialOutfit),
+            saved: (value.saved || []).map((s: Saved) => ({
+              ...s,
+              outfit: normalizeOutfit(s.outfit),
+            })),
+          }
+        : { ...defaults },
+    );
+  } catch {
+    return hydrateSceneState({ ...defaults });
+  }
+};
+const pageParam = new URLSearchParams(location.search).get('screen');
+const localDay = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+};
+const demoSteps = [
+  { label: '今日搭配', detail: '打开就看到今天要穿的这一套。', page: 'today' },
+  {
+    label: '从衣橱选衣',
+    detail: '挑选自己的衣服，回到首页看组合。',
+    page: 'closet',
+  },
+  {
+    label: '调整与试穿',
+    detail: '调整排版，预览这套衣服的感觉。',
+    page: 'outfit',
+  },
+  {
+    label: '寻找灵感',
+    detail: '想换种风格时，再来这里逛逛。',
+    page: 'discover',
+  },
+] as const;
 
-function ItemImage({item,className=''}:{item:Garment;className?:string}){if(item.statement!==undefined)return <div role="img" aria-label={item.name} className={`item-image statements statement-${item.statement} ${className}`}/>;if(item.image===''&&item.sprite===undefined&&item.essential===undefined)return <div className={`item-image missing-item ${className}`} role="img" aria-label={item.name+'，待补照片'}><Shirt size={40}/><span>待补照片</span></div>;return item.essential!==undefined?<div role="img" aria-label={item.name} className={`item-image essentials essential-${item.essential} ${className}`}/>:item.sprite!==undefined?<div role="img" aria-label={item.name} className={`item-image sprite sprite-${item.sprite} ${className}`}/>:<img className={`item-image ${className}`} src={item.image} alt={item.name} loading="lazy" onError={e=>{e.currentTarget.src='/images/details.jpg'}}/>;}
-function ModelImage({look=1}:{look?:number}){return <div className="model-image" role="img" aria-label={look===0?'示例模特原始穿搭':look===1?'预生成燕麦色西装示例':'预生成午夜蓝西装示例'} style={{backgroundPosition:`${look*50}% center`}}/>;}
-function Button({children,onClick,kind='primary',className='',disabled=false}:{children:ReactNode;onClick?:()=>void;kind?:'primary'|'secondary'|'ghost';className?:string;disabled?:boolean}){return <button onClick={onClick} className={`button ${kind} ${className}`} disabled={disabled}>{children}</button>;}
-function IconButton({label,children,onClick,active=false}:{label:string;children:ReactNode;onClick:()=>void;active?:boolean}){return <button className={`icon-button ${active?'selected':''}`} aria-label={label} onClick={onClick}>{children}</button>;}
-function SectionTitle({en,title,action,onClick}:{en?:string;title:string;action?:string;onClick?:()=>void}){return <div className="section-title"><div>{en&&<span className="eyebrow">{en}</span>}<h2>{title}</h2></div>{action&&<button className="text-link" onClick={onClick}>{action}<ArrowUpRight size={15}/></button>}</div>;}
+export function ItemImage({
+  item,
+  className = '',
+}: {
+  item: Garment;
+  className?: string;
+}) {
+  if (item.statement !== undefined)
+    return (
+      <div
+        role="img"
+        aria-label={item.name}
+        className={`item-image statements statement-${item.statement} ${className}`}
+      />
+    );
+  if (!item.image && item.sprite === undefined && item.essential === undefined)
+    return (
+      <div
+        className={`item-image missing-item ${className}`}
+        role="img"
+        aria-label={item.name + '，待补照片'}
+      >
+        <Shirt size={40} />
+        <span>待补照片</span>
+      </div>
+    );
+  return item.essential !== undefined ? (
+    <div
+      role="img"
+      aria-label={item.name}
+      className={`item-image essentials essential-${item.essential} ${className}`}
+    />
+  ) : item.sprite !== undefined ? (
+    <div
+      role="img"
+      aria-label={item.name}
+      className={`item-image sprite sprite-${item.sprite} ${className}`}
+    />
+  ) : (
+    <img
+      className={`item-image ${className}`}
+      src={item.image}
+      alt={item.name}
+      loading="lazy"
+      onError={(e) => {
+        e.currentTarget.src = '/images/details.jpg';
+      }}
+    />
+  );
+}
+function ModelImage({ look = 1 }: { look?: number }) {
+  return (
+    <div
+      className="model-image"
+      role="img"
+      aria-label={
+        look === 0
+          ? '示例模特原始穿搭'
+          : look === 1
+            ? '预生成燕麦色西装示例'
+            : '预生成午夜蓝西装示例'
+      }
+      style={{ backgroundPosition: `${look * 50}% center` }}
+    />
+  );
+}
+function Button({
+  children,
+  onClick,
+  kind = 'primary',
+  className = '',
+  disabled = false,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  kind?: 'primary' | 'secondary' | 'ghost';
+  className?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`button ${kind} ${className}`}
+      disabled={disabled}
+    >
+      {children}
+    </button>
+  );
+}
+function IconButton({
+  label,
+  children,
+  onClick,
+  active = false,
+}: {
+  label: string;
+  children: ReactNode;
+  onClick: () => void;
+  active?: boolean;
+}) {
+  return (
+    <button
+      className={`icon-button ${active ? 'selected' : ''}`}
+      aria-label={label}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+function SectionTitle({
+  en,
+  title,
+  action,
+  onClick,
+}: {
+  en?: string;
+  title: string;
+  action?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <div className="section-title">
+      <div>
+        {en && <span className="eyebrow">{en}</span>}
+        <h2>{title}</h2>
+      </div>
+      {action && (
+        <button className="text-link" onClick={onClick}>
+          {action}
+          <ArrowUpRight size={15} />
+        </button>
+      )}
+    </div>
+  );
+}
 
-export default function App(){
- const [data,setData]=useState<Persisted>(load);
- const [page,setPage]=useState<Page>(['today','discover','closet','outfit','mine','tryon','recommendations'].includes(pageParam||'')?pageParam as Page:'today');
- const [history,setHistory]=useState<Page[]>([]),[styleId,setStyleId]=useState('city'),[productId,setProductId]=useState('navy');
- const [sheet,setSheet]=useState<null|'replace'|'filter'|'upload'|'feedback'|'settings'|'search'|'integration'|'add-items'|'today-picker'>(null);
- const [todaySlot,setTodaySlot]=useState<Slot>('coat');
- const [pickerMode,setPickerMode]=useState<'single'|'outfit'>('outfit');
- const [slot,setSlot]=useState<Slot>('coat'),[locked,setLocked]=useState<Slot[]>(data.locks||[]),[category,setCategory]=useState('全部'),[query,setQuery]=useState('');
- const [recType,setRecType]=useState('一起搭'),[budget,setBudget]=useState(600),[closetMode,setClosetMode]=useState('已有衣服');
- const [previous,setPrevious]=useState<Outfit|null>(null),[comparing,setComparing]=useState(false),[toast,setToast]=useState('');
- const [upload,setUpload]=useState(''),[uploadName,setUploadName]=useState('我的新衣服'),[uploadCategory,setUploadCategory]=useState<Category>('外套');
- const [tryId,setTryId]=useState('navy'),[tryOriginal,setTryOriginal]=useState(false),[feedbackId,setFeedbackId]=useState('');
- const activePage=useRef(page);activePage.current=page;
- const [cameraOn,setCameraOn]=useState(false),[cameraError,setCameraError]=useState(''),[cameraStream,setCameraStream]=useState<MediaStream|null>(null);
- const scroller=useRef<HTMLDivElement>(null),fileInput=useRef<HTMLInputElement>(null),video=useRef<HTMLVideoElement>(null),toastTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
- const allItems=[...garments.filter(g=>!['cotton','sneaker','camel'].includes(g.id)),...data.uploads], item=(id:string)=>allItems.find(x=>x.id===id)||garments[0];
- const style=styles.find(x=>x.id===styleId)||styles[0], product=item(productId);
- const notify=(message:string)=>{setToast(message);if(toastTimer.current)clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(''),3200)};
- useEffect(()=>{setData(d=>({...d,locks:locked}))},[locked]);
- useEffect(()=>{try{localStorage.setItem(storageKey,JSON.stringify(rememberCurrentScene(data)))}catch{notify('本机存储空间不足，新的照片暂时无法保存。')}},[data]);
- useEffect(()=>{scroller.current?.scrollTo({top:0,behavior:'instant'});setSheet(null)},[page]);
- useEffect(()=>{const escape=(e:KeyboardEvent)=>{if(e.key==='Escape')setSheet(null)};document.addEventListener('keydown',escape);return()=>document.removeEventListener('keydown',escape)},[]);
- useEffect(()=>{if(!sheet||sheet==='today-picker')return;const previousFocus=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('[role="dialog"]');const selector='button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex="0"]';const elements=()=>Array.from(dialog?.querySelectorAll<HTMLElement>(selector)||[]);(dialog?.querySelector<HTMLElement>('input,select')||elements()[0])?.focus();const trap=(e:KeyboardEvent)=>{if(e.key!=='Tab')return;const all=elements();if(!all.length)return;const first=all[0],last=all[all.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}};document.addEventListener('keydown',trap);return()=>{document.removeEventListener('keydown',trap);if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true})}},[sheet]);
- useEffect(()=>{if(video.current&&cameraStream)video.current.srcObject=cameraStream},[cameraStream,cameraOn]);
- useEffect(()=>{if(page!=='tryon'&&cameraStream){cameraStream.getTracks().forEach(t=>t.stop());setCameraStream(null);setCameraOn(false)}},[page,cameraStream]);
- useEffect(()=>()=>{cameraStream?.getTracks().forEach(t=>t.stop())},[cameraStream]);
- const go=(next:Page)=>{setHistory(h=>[...h,page]);setPage(next)};
- const back=()=>{setPage(history.at(-1)||'today');setHistory(h=>h.slice(0,-1))};
- const nav=(next:Page)=>{setPage(next);setHistory([]);setQuery('');scroller.current?.scrollTo({top:0,behavior:'instant'})};
- const toggleFavorite=(id:string)=>setData(d=>({...d,favorites:d.favorites.includes(id)?d.favorites.filter(x=>x!==id):[...d.favorites,id]}));
- const toggleStyle=()=>{setData(d=>({...d,styleLikes:d.styleLikes.includes(style.id)?d.styleLikes.filter(x=>x!==style.id):[...d.styleLikes,style.id]}));notify(data.styleLikes.includes(style.id)?'已取消收藏风格':'已收藏这份风格灵感')};
- const openProduct=(id:string)=>{setProductId(id);go('product')};
- const tryOn=(id?:string)=>{setTryId(id||data.outfit.coat);setTryOriginal(false);setCameraError('');go('tryon')};
- const updateOutfit=(id:string,target?:Slot,silent=false)=>{const g=item(id);const s=target||slotFor(g);setPrevious(data.outfit);setData(d=>({...d,outfit:{...d.outfit,[s]:id}}));setComparing(false);setSheet(null);if(!silent)notify(`已替换${slotNames[s]}，其他选择已保留`)};
- const saveOutfit=(chosen:Outfit=data.outfit,canvasLayout:CanvasLayout|undefined=data.canvasLayout)=>{const exists=data.saved.some(x=>JSON.stringify(x.outfit)===JSON.stringify(chosen)&&x.scene===data.scene);if(exists){setData(d=>({...d,saved:d.saved.map(s=>JSON.stringify(s.outfit)===JSON.stringify(chosen)&&s.scene===d.scene?{...s,canvasLayout}:s)}));notify('已更新这套搭配与画布排版');return;}setData(d=>({...d,saved:[{id:Date.now().toString(),title:`${hasSceneChanges(d)?'自选搭配':scenePresets[toSceneName(d.scene)].title} · ${d.scene}`,outfit:{...chosen},scene:d.scene,canvasLayout},...d.saved]}));notify('已保存到我的搭配')};
- const pickToday=(slot?:Slot)=>{setTodaySlot(slot||'coat');setPickerMode(slot?'single':'outfit');setSheet('today-picker')};
- const confirmToday=()=>{saveOutfit();setData(d=>({...d,confirmedLook:{day:localDay(),signature:JSON.stringify([d.outfit,d.scene])}}));notify('已定好今日搭配，也保存到了搭配收藏')};
- const changeScene=(scene:string)=>{setData(d=>switchScene(d,scene));setPrevious(null);setComparing(false)};
- const restoreScene=()=>{setData(d=>restoreSceneRecommendation(d));setPrevious(null);setComparing(false);notify(`已恢复${data.scene}的场景推荐与排版`)};
- const startStyle=()=>{changeScene(style.id==='college'?'见面时刻':style.id==='outdoor'?'周末漫步':'轻松日常');go('today');notify('已带回对应场景，轻点衣服继续调整')};
- const shuffle=()=>{if(locked.includes('coat')&&locked.includes('bottom')){notify('外套与下装都已锁定，先解锁一件再换搭');return;}setPrevious(data.outfit);setData(d=>({...d,outfit:{...d.outfit,coat:locked.includes('coat')?d.outfit.coat:d.outfit.coat==='navy'?'oat':'navy',bottom:locked.includes('bottom')?d.outfit.bottom:d.outfit.bottom==='jeans'?'trouser':'jeans'}}));notify('换了一种组合，已保留锁定单品')};
- const uploadFile=(file?:File)=>{if(!file)return;if(!['image/jpeg','image/png','image/webp'].includes(file.type)){notify('请选择 JPG、PNG 或 WebP 图片');return;}if(file.size>4*1024*1024){notify('请选择小于 4 MB 的图片');return;}const r=new FileReader();r.onload=()=>{setUpload(r.result as string);setUploadName(file.name.replace(/\.[^.]+$/,''));setSheet('upload')};r.readAsDataURL(file)};
- const addUpload=()=>{if(!upload||!uploadName.trim())return;const g:Garment={id:`upload-${Date.now()}`,name:uploadName.trim(),en:'From your wardrobe',category:uploadCategory,color:'自选',price:0,image:upload,owned:true,reason:'你加入的衣橱单品，可以围绕它继续搭配。',style:'我的风格',material:'待补充'};setData(d=>({...d,uploads:[g,...d.uploads]}));setSheet(null);setUpload('');notify('已加入衣橱，照片仅保存在本机')};
- const startCamera=async()=>{if(cameraOn){cameraStream?.getTracks().forEach(t=>t.stop());setCameraStream(null);setCameraOn(false);return;}setCameraError('');try{if(!navigator.mediaDevices?.getUserMedia)throw new Error('unsupported');const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});if(activePage.current!=='tryon'){stream.getTracks().forEach(t=>t.stop());return;}setCameraStream(stream);setCameraOn(true);}catch{setCameraError('相机暂时无法开启。你仍可使用下方示例预览；手机相机需要 HTTPS 和浏览器授权。')}};
- const reset=()=>{setData(hydrateSceneState({...defaults}));setLocked([]);setPrevious(null);setSheet(null);nav('today');notify('已重置本应用的演示数据')};
- const productCards=(list:Garment[])=>list.filter(g=>!['cotton','sneaker','camel'].includes(g.id)).map(g=><article className="product-card" key={g.id}><div className="product-visual"><button className="image-button" onClick={()=>openProduct(g.id)} aria-label={`查看${g.name}`}><ItemImage item={g}/></button><span className={`source-tag ${g.owned?'owned':''}`}>{g.owned?'我的衣橱':'精选单品'}</span><button className={`favorite ${data.favorites.includes(g.id)?'active':''}`} aria-label={`${data.favorites.includes(g.id)?'取消收藏':'收藏'}${g.name}`} aria-pressed={data.favorites.includes(g.id)} onClick={()=>toggleFavorite(g.id)}><Heart size={17} fill={data.favorites.includes(g.id)?'currentColor':'none'}/></button></div><button className="product-name" onClick={()=>openProduct(g.id)}>{g.name}</button><div className="product-meta"><span>{g.color}</span><b>{g.owned?'已拥有':`¥${g.price}`}</b></div></article>);
- const board=(outfit:Outfit,mini=false)=><div className={`outfit-board ${mini?'mini':''}`}><span className="board-note">MUSE / PERSONAL EDIT</span>{(['coat','top','bottom','shoes','bag'] as Slot[]).map(s=>mini?<div key={s} className={`board-item board-${s}`}><ItemImage item={item(outfit[s])}/></div>:<button key={s} className={`board-item board-${s}`} onClick={()=>{setSlot(s);setSheet('replace')}} aria-label={`更换${slotNames[s]}`}><ItemImage item={item(outfit[s])}/><span className="board-label">{slotNames[s]}<Plus size={11}/></span></button>)}<span className="board-caption">A little more you.</span></div>;
+export default function App() {
+  const [data, setData] = useState<Persisted>(load);
+  const [page, setPage] = useState<Page>(
+    [
+      'today',
+      'discover',
+      'closet',
+      'outfit',
+      'mine',
+      'tryon',
+      'recommendations',
+    ].includes(pageParam || '')
+      ? (pageParam as Page)
+      : 'today',
+  );
+  const [history, setHistory] = useState<Page[]>([]),
+    [styleId, setStyleId] = useState('city'),
+    [productId, setProductId] = useState('navy');
+  const [sheet, setSheet] = useState<
+    | null
+    | 'replace'
+    | 'filter'
+    | 'upload'
+    | 'feedback'
+    | 'settings'
+    | 'search'
+    | 'integration'
+    | 'add-items'
+    | 'today-picker'
+  >(null);
+  const [todaySlot, setTodaySlot] = useState<Slot>('coat');
+  const [pickerMode, setPickerMode] = useState<'single' | 'outfit'>('outfit');
+  const [slot, setSlot] = useState<Slot>('coat'),
+    [category, setCategory] = useState('全部'),
+    [query, setQuery] = useState('');
+  const [recType, setRecType] = useState('一起搭'),
+    [budget, setBudget] = useState(600),
+    [closetMode, setClosetMode] = useState('已有衣服');
+  const [previous, setPrevious] = useState<Outfit | null>(null),
+    [comparing, setComparing] = useState(false),
+    [toast, setToast] = useState('');
+  const [upload, setUpload] = useState(''),
+    [uploadName, setUploadName] = useState('我的新衣服'),
+    [uploadCategory, setUploadCategory] = useState<Category>('外套');
+  const [tryId, setTryId] = useState('navy'),
+    [tryOriginal, setTryOriginal] = useState(false),
+    [feedbackId, setFeedbackId] = useState('');
+  const activePage = useRef(page);
+  activePage.current = page;
+  const [cameraOn, setCameraOn] = useState(false),
+    [cameraError, setCameraError] = useState(''),
+    [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const scroller = useRef<HTMLDivElement>(null),
+    fileInput = useRef<HTMLInputElement>(null),
+    video = useRef<HTMLVideoElement>(null),
+    toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const allItems = [
+      ...garments.filter((g) => !['cotton', 'sneaker', 'camel'].includes(g.id)),
+      ...data.uploads,
+    ],
+    item = (id: string) => allItems.find((x) => x.id === id) || garments[0];
+  const style = styles.find((x) => x.id === styleId) || styles[0],
+    product = item(productId);
+  const notify = (message: string) => {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 3200);
+  };
+  const locked = data.locks || [];
+  const setLocked = (value: Slot[] | ((old: Slot[]) => Slot[])) =>
+    setData((d) => ({
+      ...d,
+      locks: typeof value === 'function' ? value(d.locks || []) : value,
+    }));
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify(rememberCurrentScene(data)),
+      );
+    } catch {
+      notify('本机存储空间不足，新的照片暂时无法保存。');
+    }
+  }, [data]);
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: 0, behavior: 'instant' });
+    setSheet(null);
+  }, [page]);
+  useEffect(() => {
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSheet(null);
+    };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, []);
+  useEffect(() => {
+    if (!sheet || sheet === 'today-picker') return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    const selector =
+      'button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex="0"]';
+    const elements = () =>
+      Array.from(dialog?.querySelectorAll<HTMLElement>(selector) || []);
+    (
+      dialog?.querySelector<HTMLElement>('input,select') || elements()[0]
+    )?.focus();
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const all = elements();
+      if (!all.length) return;
+      const first = all[0],
+        last = all[all.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', trap);
+    return () => {
+      document.removeEventListener('keydown', trap);
+      if (previousFocus?.isConnected)
+        previousFocus.focus({ preventScroll: true });
+    };
+  }, [sheet]);
+  useEffect(() => {
+    if (video.current && cameraStream) video.current.srcObject = cameraStream;
+  }, [cameraStream, cameraOn]);
+  useEffect(() => {
+    if (page !== 'tryon' && cameraStream) {
+      cameraStream.getTracks().forEach((t) => t.stop());
+      setCameraStream(null);
+      setCameraOn(false);
+    }
+  }, [page, cameraStream]);
+  useEffect(
+    () => () => {
+      cameraStream?.getTracks().forEach((t) => t.stop());
+    },
+    [cameraStream],
+  );
+  const go = (next: Page) => {
+    setHistory((h) => [...h, page]);
+    setPage(next);
+  };
+  const back = () => {
+    setPage(history.at(-1) || 'today');
+    setHistory((h) => h.slice(0, -1));
+  };
+  const nav = (next: Page) => {
+    setPage(next);
+    setHistory([]);
+    setQuery('');
+    scroller.current?.scrollTo({ top: 0, behavior: 'instant' });
+  };
+  const toggleFavorite = (id: string) =>
+    setData((d) => ({
+      ...d,
+      favorites: d.favorites.includes(id)
+        ? d.favorites.filter((x) => x !== id)
+        : [...d.favorites, id],
+    }));
+  const toggleStyle = () => {
+    setData((d) => ({
+      ...d,
+      styleLikes: d.styleLikes.includes(style.id)
+        ? d.styleLikes.filter((x) => x !== style.id)
+        : [...d.styleLikes, style.id],
+    }));
+    notify(
+      data.styleLikes.includes(style.id)
+        ? '已取消收藏风格'
+        : '已收藏这份风格灵感',
+    );
+  };
+  const openProduct = (id: string) => {
+    setProductId(id);
+    go('product');
+  };
+  const tryOn = (id?: string) => {
+    setTryId(id || data.outfit.coat);
+    setTryOriginal(false);
+    setCameraError('');
+    go('tryon');
+  };
+  const updateOutfit = (id: string, target?: Slot, silent = false) => {
+    const g = item(id);
+    const s = target || slotFor(g);
+    setPrevious(data.outfit);
+    setData((d) => ({ ...d, outfit: { ...d.outfit, [s]: id } }));
+    setComparing(false);
+    setSheet(null);
+    if (!silent) notify(`已替换${slotNames[s]}，其他选择已保留`);
+  };
+  const saveOutfit = (
+    chosen: Outfit = data.outfit,
+    canvasLayout: CanvasLayout | undefined = data.canvasLayout,
+  ) => {
+    const exists = data.saved.some(
+      (x) =>
+        JSON.stringify(x.outfit) === JSON.stringify(chosen) &&
+        x.scene === data.scene,
+    );
+    if (exists) {
+      setData((d) => ({
+        ...d,
+        saved: d.saved.map((s) =>
+          JSON.stringify(s.outfit) === JSON.stringify(chosen) &&
+          s.scene === d.scene
+            ? { ...s, canvasLayout }
+            : s,
+        ),
+      }));
+      notify('已更新这套搭配与画布排版');
+      return;
+    }
+    setData((d) => ({
+      ...d,
+      saved: [
+        {
+          id: Date.now().toString(),
+          title: `${hasSceneChanges(d) ? '自选搭配' : scenePresets[toSceneName(d.scene)].title} · ${d.scene}`,
+          outfit: { ...chosen },
+          scene: d.scene,
+          canvasLayout,
+        },
+        ...d.saved,
+      ],
+    }));
+    notify('已保存到我的搭配');
+  };
+  const pickToday = (slot?: Slot) => {
+    setTodaySlot(slot || 'coat');
+    setPickerMode(slot ? 'single' : 'outfit');
+    setSheet('today-picker');
+  };
+  const confirmToday = () => {
+    saveOutfit();
+    setData((d) => ({
+      ...d,
+      confirmedLook: {
+        day: localDay(),
+        signature: JSON.stringify([d.outfit, d.scene]),
+      },
+    }));
+    notify('已定好今日搭配，也保存到了搭配收藏');
+  };
+  const changeScene = (scene: string) => {
+    setData((d) => switchScene(d, scene));
+    setPrevious(null);
+    setComparing(false);
+  };
+  const restoreScene = () => {
+    setData((d) => restoreSceneRecommendation(d));
+    setPrevious(null);
+    setComparing(false);
+    notify(`已恢复${data.scene}的场景推荐与排版`);
+  };
+  const startStyle = () => {
+    changeScene(
+      style.id === 'college'
+        ? '见面时刻'
+        : style.id === 'outdoor'
+          ? '周末漫步'
+          : '轻松日常',
+    );
+    go('today');
+    notify('已带回对应场景，轻点衣服继续调整');
+  };
+  const shuffle = () => {
+    if (locked.includes('coat') && locked.includes('bottom')) {
+      notify('外套与下装都已锁定，先解锁一件再换搭');
+      return;
+    }
+    setPrevious(data.outfit);
+    setData((d) => ({
+      ...d,
+      outfit: {
+        ...d.outfit,
+        coat: locked.includes('coat')
+          ? d.outfit.coat
+          : d.outfit.coat === 'navy'
+            ? 'oat'
+            : 'navy',
+        bottom: locked.includes('bottom')
+          ? d.outfit.bottom
+          : d.outfit.bottom === 'jeans'
+            ? 'trouser'
+            : 'jeans',
+      },
+    }));
+    notify('换了一种组合，已保留锁定单品');
+  };
+  const uploadFile = (file?: File) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      notify('请选择 JPG、PNG 或 WebP 图片');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      notify('请选择小于 4 MB 的图片');
+      return;
+    }
+    const r = new FileReader();
+    r.onload = () => {
+      setUpload(r.result as string);
+      setUploadName(file.name.replace(/\.[^.]+$/, ''));
+      setSheet('upload');
+    };
+    r.readAsDataURL(file);
+  };
+  const addUpload = () => {
+    if (!upload || !uploadName.trim()) return;
+    const g: Garment = {
+      id: `upload-${Date.now()}`,
+      name: uploadName.trim(),
+      en: 'From your wardrobe',
+      category: uploadCategory,
+      color: '自选',
+      price: 0,
+      image: upload,
+      owned: true,
+      reason: '你加入的衣橱单品，可以围绕它继续搭配。',
+      style: '我的风格',
+      material: '待补充',
+    };
+    setData((d) => ({ ...d, uploads: [g, ...d.uploads] }));
+    setSheet(null);
+    setUpload('');
+    notify('已加入衣橱，照片仅保存在本机');
+  };
+  const startCamera = async () => {
+    if (cameraOn) {
+      cameraStream?.getTracks().forEach((t) => t.stop());
+      setCameraStream(null);
+      setCameraOn(false);
+      return;
+    }
+    setCameraError('');
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: false,
+      });
+      if (activePage.current !== 'tryon') {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      setCameraStream(stream);
+      setCameraOn(true);
+    } catch {
+      setCameraError(
+        '相机暂时无法开启。你仍可使用下方示例预览；手机相机需要 HTTPS 和浏览器授权。',
+      );
+    }
+  };
+  const reset = () => {
+    setData(hydrateSceneState({ ...defaults }));
+    setLocked([]);
+    setPrevious(null);
+    setSheet(null);
+    nav('today');
+    notify('已重置本应用的演示数据');
+  };
+  const productCards = (list: Garment[]) =>
+    list
+      .filter((g) => !['cotton', 'sneaker', 'camel'].includes(g.id))
+      .map((g) => (
+        <article className="product-card" key={g.id}>
+          <div className="product-visual">
+            <button
+              className="image-button"
+              onClick={() => openProduct(g.id)}
+              aria-label={`查看${g.name}`}
+            >
+              <ItemImage item={g} />
+            </button>
+            <span className={`source-tag ${g.owned ? 'owned' : ''}`}>
+              {g.owned ? '我的衣橱' : '精选单品'}
+            </span>
+            <button
+              className={`favorite ${data.favorites.includes(g.id) ? 'active' : ''}`}
+              aria-label={`${data.favorites.includes(g.id) ? '取消收藏' : '收藏'}${g.name}`}
+              aria-pressed={data.favorites.includes(g.id)}
+              onClick={() => toggleFavorite(g.id)}
+            >
+              <Heart
+                size={17}
+                fill={data.favorites.includes(g.id) ? 'currentColor' : 'none'}
+              />
+            </button>
+          </div>
+          <button className="product-name" onClick={() => openProduct(g.id)}>
+            {g.name}
+          </button>
+          <div className="product-meta">
+            <span>{g.color}</span>
+            <b>{g.owned ? '已拥有' : `¥${g.price}`}</b>
+          </div>
+        </article>
+      ));
+  const board = (outfit: Outfit, mini = false) => (
+    <div className={`outfit-board ${mini ? 'mini' : ''}`}>
+      <span className="board-note">MUSE / PERSONAL EDIT</span>
+      {(['coat', 'top', 'bottom', 'shoes', 'bag'] as Slot[]).map((s) =>
+        mini ? (
+          <div key={s} className={`board-item board-${s}`}>
+            <ItemImage item={item(outfit[s])} />
+          </div>
+        ) : (
+          <button
+            key={s}
+            className={`board-item board-${s}`}
+            onClick={() => {
+              setSlot(s);
+              setSheet('replace');
+            }}
+            aria-label={`更换${slotNames[s]}`}
+          >
+            <ItemImage item={item(outfit[s])} />
+            <span className="board-label">
+              {slotNames[s]}
+              <Plus size={11} />
+            </span>
+          </button>
+        ),
+      )}
+      <span className="board-caption">A little more you.</span>
+    </div>
+  );
 
- const discover=()=> <>
-  <header className="home-header"><a className="wordmark" href="#" onClick={e=>{e.preventDefault();nav('today')}}>muse<span className="brand-star">✳</span></a><div><IconButton label="搜索风格与单品" onClick={()=>setSheet('search')}><Search size={20}/></IconButton><IconButton label="查看我的收藏" onClick={()=>nav('mine')}><Bookmark size={20}/></IconButton></div></header>
-  <div className="greeting"><span>YOUR EVERYDAY INSPIRATION</span><span><Sun size={14}/>冬日灵感</span></div>
-  <h1 className="discover-title">换一种感觉。</h1><p className="lead">把喜欢的风格，带回你的今日搭配。</p>
-  <button className="editorial-hero" onClick={()=>{setStyleId('city');go('style')}} aria-label="探索冬日都市轮廓"><img src="/images/editorial.jpg" alt="冬季街头穿搭灵感，蓝色外套与层次配色"/><span className="hero-pill">THE WINTER EDIT / 01</span><div className="hero-copy"><span>本季风格提案</span><h2>冬日，<br/><i>轻一点的利落。</i></h2><div>都市轮廓 <span className="round-arrow"><ArrowUpRight size={20}/></span></div></div></button>
-  <div className="discovery-shortcuts"><button onClick={()=>nav('today')}><span><Layers size={20}/></span><div><b>回到今日搭配</b><small>从你的衣橱出发</small></div><ChevronRight size={16}/></button><button onClick={()=>{setRecType('补充衣橱');go('recommendations')}}><span><Shirt size={20}/></span><div><b>遇见下一件</b><small>心动，也合拍</small></div><ChevronRight size={16}/></button></div>
-  <SectionTitle en="FIND YOUR FEELING" title="风格，由你定义" action="全部风格" onClick={()=>document.getElementById('style-collection')?.scrollIntoView({behavior:'smooth',block:'start'})}/>
-  <div className="style-track" id="style-collection">{styles.map((s,i)=><button key={s.id} className={`style-card style-card-${i}`} onClick={()=>{setStyleId(s.id);go('style')}}><img src={s.image} alt={s.name+'穿搭参考'}/><span className="style-number">0{i+1}</span><div><small>{s.en}</small><h3>{s.name}</h3><ArrowUpRight size={17}/></div></button>)}</div>
-  <div className="quote-panel"><Sparkles size={18}/><p>新鲜感，也可以来自<br/><em>你已经拥有的衣服。</em></p><button onClick={()=>nav('closet')}>看看我的衣橱<ArrowRight size={15}/></button></div>
-  <SectionTitle en="A GOOD MATCH" title="与你的衣橱很合拍" action="更多单品" onClick={()=>go('recommendations')}/><div className="product-grid">{productCards(garments.filter(g=>!g.owned))}</div><p className="subtle-note">风格编辑与商品为演示内容，价格仅供原型体验。</p>
- </>;
+  const discover = () => (
+    <>
+      <header className="home-header">
+        <a
+          className="wordmark"
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            nav('today');
+          }}
+        >
+          muse<span className="brand-star">✳</span>
+        </a>
+        <div>
+          <IconButton label="搜索风格与单品" onClick={() => setSheet('search')}>
+            <Search size={20} />
+          </IconButton>
+          <IconButton label="查看我的收藏" onClick={() => nav('mine')}>
+            <Bookmark size={20} />
+          </IconButton>
+        </div>
+      </header>
+      <div className="greeting">
+        <span>YOUR EVERYDAY INSPIRATION</span>
+        <span>
+          <Sun size={14} />
+          冬日灵感
+        </span>
+      </div>
+      <h1 className="discover-title">换一种感觉。</h1>
+      <p className="lead">把喜欢的风格，带回你的今日搭配。</p>
+      <button
+        className="editorial-hero"
+        onClick={() => {
+          setStyleId('city');
+          go('style');
+        }}
+        aria-label="探索冬日都市轮廓"
+      >
+        <img
+          src="/images/editorial.jpg"
+          alt="冬季街头穿搭灵感，蓝色外套与层次配色"
+        />
+        <span className="hero-pill">THE WINTER EDIT / 01</span>
+        <div className="hero-copy">
+          <span>本季风格提案</span>
+          <h2>
+            冬日，
+            <br />
+            <i>轻一点的利落。</i>
+          </h2>
+          <div>
+            都市轮廓{' '}
+            <span className="round-arrow">
+              <ArrowUpRight size={20} />
+            </span>
+          </div>
+        </div>
+      </button>
+      <div className="discovery-shortcuts">
+        <button onClick={() => nav('today')}>
+          <span>
+            <Layers size={20} />
+          </span>
+          <div>
+            <b>回到今日搭配</b>
+            <small>从你的衣橱出发</small>
+          </div>
+          <ChevronRight size={16} />
+        </button>
+        <button
+          onClick={() => {
+            setRecType('补充衣橱');
+            go('recommendations');
+          }}
+        >
+          <span>
+            <Shirt size={20} />
+          </span>
+          <div>
+            <b>遇见下一件</b>
+            <small>心动，也合拍</small>
+          </div>
+          <ChevronRight size={16} />
+        </button>
+      </div>
+      <SectionTitle
+        en="FIND YOUR FEELING"
+        title="风格，由你定义"
+        action="全部风格"
+        onClick={() =>
+          document
+            .getElementById('style-collection')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      />
+      <div className="style-track" id="style-collection">
+        {styles.map((s, i) => (
+          <button
+            key={s.id}
+            className={`style-card style-card-${i}`}
+            onClick={() => {
+              setStyleId(s.id);
+              go('style');
+            }}
+          >
+            <img src={s.image} alt={s.name + '穿搭参考'} />
+            <span className="style-number">0{i + 1}</span>
+            <div>
+              <small>{s.en}</small>
+              <h3>{s.name}</h3>
+              <ArrowUpRight size={17} />
+            </div>
+          </button>
+        ))}
+      </div>
+      <div className="quote-panel">
+        <Sparkles size={18} />
+        <p>
+          新鲜感，也可以来自
+          <br />
+          <em>你已经拥有的衣服。</em>
+        </p>
+        <button onClick={() => nav('closet')}>
+          看看我的衣橱
+          <ArrowRight size={15} />
+        </button>
+      </div>
+      <SectionTitle
+        en="A GOOD MATCH"
+        title="与你的衣橱很合拍"
+        action="更多单品"
+        onClick={() => go('recommendations')}
+      />
+      <div className="product-grid">
+        {productCards(garments.filter((g) => !g.owned))}
+      </div>
+      <p className="subtle-note">
+        风格编辑与商品为演示内容，价格仅供原型体验。
+      </p>
+    </>
+  );
 
- const stylePage=()=> <><div className="style-hero"><img src={style.image} alt={style.name+'风格灵感'}/><div className="floating-header"><IconButton label="返回" onClick={back}><ArrowLeft size={20}/></IconButton><span>STYLE NOTES</span><IconButton label="收藏风格" active={data.styleLikes.includes(style.id)} onClick={toggleStyle}><Bookmark size={19} fill={data.styleLikes.includes(style.id)?'currentColor':'none'}/></IconButton></div><div className="style-hero-title"><span>THE WINTER EDIT</span><h1>{style.name}</h1><i>{style.en}</i></div></div><div className="page-inner"><p className="style-description">{style.description}</p><div className="tags">{style.tags.map(t=><span key={t}>{t}</span>)}</div><div className="style-primary"><Button onClick={startStyle}><Sparkles size={17}/>用我的衣橱搭一套<ArrowRight size={17}/></Button><p>从已有单品开始，也能尝试新的自己。</p></div><SectionTitle en="THE BUILDING BLOCKS" title="组成这种感觉的单品"/><div className="product-grid">{productCards(garments.filter(g=>style.id==='college'?['camel','jeans','bag','oat'].includes(g.id):style.id==='outdoor'?['shoe','jeans','navy','tee'].includes(g.id):['oat','navy','trouser','bag'].includes(g.id)))}</div><Button kind="secondary" onClick={()=>{setRecType('一起搭');go('recommendations')}}>探索更多相关衣服<ArrowUpRight size={17}/></Button><p className="subtle-note">编辑式风格提案 · 非实时热度排名</p></div></>;
+  const stylePage = () => (
+    <>
+      <div className="style-hero">
+        <img src={style.image} alt={style.name + '风格灵感'} />
+        <div className="floating-header">
+          <IconButton label="返回" onClick={back}>
+            <ArrowLeft size={20} />
+          </IconButton>
+          <span>STYLE NOTES</span>
+          <IconButton
+            label="收藏风格"
+            active={data.styleLikes.includes(style.id)}
+            onClick={toggleStyle}
+          >
+            <Bookmark
+              size={19}
+              fill={
+                data.styleLikes.includes(style.id) ? 'currentColor' : 'none'
+              }
+            />
+          </IconButton>
+        </div>
+        <div className="style-hero-title">
+          <span>THE WINTER EDIT</span>
+          <h1>{style.name}</h1>
+          <i>{style.en}</i>
+        </div>
+      </div>
+      <div className="page-inner">
+        <p className="style-description">{style.description}</p>
+        <div className="tags">
+          {style.tags.map((t) => (
+            <span key={t}>{t}</span>
+          ))}
+        </div>
+        <div className="style-primary">
+          <Button onClick={startStyle}>
+            <Sparkles size={17} />
+            用我的衣橱搭一套
+            <ArrowRight size={17} />
+          </Button>
+          <p>从已有单品开始，也能尝试新的自己。</p>
+        </div>
+        <SectionTitle en="THE BUILDING BLOCKS" title="组成这种感觉的单品" />
+        <div className="product-grid">
+          {productCards(
+            garments.filter((g) =>
+              style.id === 'college'
+                ? ['camel', 'jeans', 'bag', 'oat'].includes(g.id)
+                : style.id === 'outdoor'
+                  ? ['shoe', 'jeans', 'navy', 'tee'].includes(g.id)
+                  : ['oat', 'navy', 'trouser', 'bag'].includes(g.id),
+            ),
+          )}
+        </div>
+        <Button
+          kind="secondary"
+          onClick={() => {
+            setRecType('一起搭');
+            go('recommendations');
+          }}
+        >
+          探索更多相关衣服
+          <ArrowUpRight size={17} />
+        </Button>
+        <p className="subtle-note">编辑式风格提案 · 非实时热度排名</p>
+      </div>
+    </>
+  );
 
- const closet=()=>{const filtered=allItems.filter(g=>(closetMode==='已有衣服'?g.owned:data.favorites.includes(g.id)&&!g.owned)&&(category==='全部'||g.category===category)&&`${g.name}${g.color}${g.category}`.includes(query));return <><header className="page-header"><div><span className="eyebrow">YOUR PERSONAL CLOSET</span><h1>我的衣橱<span className="count-dot">{allItems.filter(g=>g.owned).length}</span></h1></div><IconButton label="加入衣服" onClick={()=>fileInput.current?.click()}><Plus size={23}/></IconButton></header><div className="segmented"><button className={closetMode==='已有衣服'?'active':''} onClick={()=>setClosetMode('已有衣服')}>已有衣服</button><button className={closetMode==='心愿清单'?'active':''} onClick={()=>setClosetMode('心愿清单')}>心愿清单<span>{data.favorites.filter(id=>!item(id).owned).length}</span></button></div><div className="closet-banner"><div><b>让熟悉的衣服，<br/>有新的可能。</b><p>从一件开始，慢慢收集你的风格。</p></div><button aria-label="从衣橱开始搭配" onClick={()=>nav('outfit')}><ArrowUpRight size={23}/></button></div><div className="search-field"><Search size={17}/><input aria-label="搜索衣橱" placeholder="搜索衣服、颜色或品类" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button aria-label="清除搜索" onClick={()=>setQuery('')}><X size={15}/></button>}</div><div className="chips">{categories.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div>{filtered.length?<div className="product-grid closet-grid">{productCards(filtered)}</div>:<div className="empty-state"><Shirt/><h3>{closetMode==='心愿清单'?'给心动的衣服留个位置':'还没有找到这件衣服'}</h3><p>{closetMode==='心愿清单'?'收藏推荐单品，它们会出现在这里。':'换个关键词，或把它加入衣橱。'}</p><Button kind="secondary" onClick={()=>{if(closetMode==='心愿清单')go('recommendations');else{setQuery('');setCategory('全部')}}}>{closetMode==='心愿清单'?'探索相关单品':'清除筛选'}</Button></div>}<button className="add-garment" onClick={()=>fileInput.current?.click()}><ImagePlus size={22}/><div><b>把喜欢穿的衣服放进来</b><span>拍照或选图 · 仅保存在本机</span></div><Plus size={19}/></button></>};
+  const closet = () => {
+    const filtered = allItems.filter(
+      (g) =>
+        (closetMode === '已有衣服'
+          ? g.owned
+          : data.favorites.includes(g.id) && !g.owned) &&
+        (category === '全部' || g.category === category) &&
+        `${g.name}${g.color}${g.category}`.includes(query),
+    );
+    return (
+      <>
+        <header className="page-header">
+          <div>
+            <span className="eyebrow">YOUR PERSONAL CLOSET</span>
+            <h1>
+              我的衣橱
+              <span className="count-dot">
+                {allItems.filter((g) => g.owned).length}
+              </span>
+            </h1>
+          </div>
+          <IconButton
+            label="加入衣服"
+            onClick={() => fileInput.current?.click()}
+          >
+            <Plus size={23} />
+          </IconButton>
+        </header>
+        <div className="segmented">
+          <button
+            className={closetMode === '已有衣服' ? 'active' : ''}
+            onClick={() => setClosetMode('已有衣服')}
+          >
+            已有衣服
+          </button>
+          <button
+            className={closetMode === '心愿清单' ? 'active' : ''}
+            onClick={() => setClosetMode('心愿清单')}
+          >
+            心愿清单
+            <span>{data.favorites.filter((id) => !item(id).owned).length}</span>
+          </button>
+        </div>
+        <div className="closet-banner">
+          <div>
+            <b>
+              让熟悉的衣服，
+              <br />
+              有新的可能。
+            </b>
+            <p>从一件开始，慢慢收集你的风格。</p>
+          </div>
+          <button aria-label="从衣橱开始搭配" onClick={() => nav('outfit')}>
+            <ArrowUpRight size={23} />
+          </button>
+        </div>
+        <div className="search-field">
+          <Search size={17} />
+          <input
+            aria-label="搜索衣橱"
+            placeholder="搜索衣服、颜色或品类"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query && (
+            <button aria-label="清除搜索" onClick={() => setQuery('')}>
+              <X size={15} />
+            </button>
+          )}
+        </div>
+        <div className="chips">
+          {categories.map((c) => (
+            <button
+              key={c}
+              className={category === c ? 'active' : ''}
+              onClick={() => setCategory(c)}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+        {filtered.length ? (
+          <div className="product-grid closet-grid">
+            {productCards(filtered)}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <Shirt />
+            <h3>
+              {closetMode === '心愿清单'
+                ? '给心动的衣服留个位置'
+                : '还没有找到这件衣服'}
+            </h3>
+            <p>
+              {closetMode === '心愿清单'
+                ? '收藏推荐单品，它们会出现在这里。'
+                : '换个关键词，或把它加入衣橱。'}
+            </p>
+            <Button
+              kind="secondary"
+              onClick={() => {
+                if (closetMode === '心愿清单') go('recommendations');
+                else {
+                  setQuery('');
+                  setCategory('全部');
+                }
+              }}
+            >
+              {closetMode === '心愿清单' ? '探索相关单品' : '清除筛选'}
+            </Button>
+          </div>
+        )}
+        <button
+          className="add-garment"
+          onClick={() => fileInput.current?.click()}
+        >
+          <ImagePlus size={22} />
+          <div>
+            <b>把喜欢穿的衣服放进来</b>
+            <span>拍照或选图 · 仅保存在本机</span>
+          </div>
+          <Plus size={19} />
+        </button>
+      </>
+    );
+  };
 
- const outfitPage=()=> <><header className="page-header"><div><span className="eyebrow">YOUR STYLE, IN THE MAKING</span><h1>今天，穿这套。</h1></div><IconButton label="查看已保存搭配" onClick={()=>nav('mine')}><Bookmark size={20}/></IconButton></header><div className="outfit-topline"><button className="capsule-select" onClick={()=>{setStyleId(style.id==='city'?'college':'city');notify('已切换风格提示，搭配中的选择仍然保留')}}>{style.name}<ChevronDown size={14}/></button><span><Sun size={15}/>{data.scene}</span></div>{board(data.outfit)}<div className="board-actions"><button onClick={shuffle}><RefreshCw size={15}/>换一种搭法</button><button disabled={!previous} onClick={()=>setComparing(!comparing)}><Layers size={15}/>{comparing?'收起比较':'对比上一套'}</button></div>{comparing&&previous&&<div className="compare-outfits"><div><span>上一套</span>{board(previous,true)}</div><div><span>现在这套</span>{board(data.outfit,true)}</div></div>}<div className="chips scene-chips">{['轻松日常','周末漫步','见面时刻'].map(s=><button className={data.scene===s?'active':''} key={s} onClick={()=>changeScene(s)}>{s}</button>)}</div><div className="stylist-note"><span className="mini-spark"><Sparkles size={15}/></span><div><b>一点搭配思路</b><p>{data.outfit.coat==='navy'?'深蓝带来清晰的层次，与柔白内搭和暖色长裤形成自然对比。':'用柔和的中性色连接整套造型，舒展的裤线让外套更显轻松。'}{data.scene==='周末漫步'?'换上运动鞋，走远一点也自在。':data.scene==='见面时刻'?'保留简洁配饰，让细节轻轻发光。':'保留你熟悉的单品，尝试一点新鲜感。'}</p></div></div><SectionTitle title="保留喜欢的，调整其他" action="相关推荐" onClick={()=>go('recommendations')}/><div className="outfit-items">{(['coat','top','bottom','shoes','bag'] as Slot[]).map(s=><div className="outfit-item" key={s}><button className="outfit-item-image" onClick={()=>{setSlot(s);setSheet('replace')}} aria-label={`选择${slotNames[s]}`}><ItemImage item={item(data.outfit[s])}/></button><div><small>{slotNames[s]} · {item(data.outfit[s]).owned?'已有':'待购买'}</small><b>{item(data.outfit[s]).name}</b></div><IconButton label={`${locked.includes(s)?'解锁':'锁定'}${slotNames[s]}`} active={locked.includes(s)} onClick={()=>setLocked(l=>l.includes(s)?l.filter(x=>x!==s):[...l,s])}>{locked.includes(s)?<LockKeyhole size={16}/>:<UnlockKeyhole size={16}/>}</IconButton><IconButton label={`替换${slotNames[s]}`} onClick={()=>{setSlot(s);setSheet('replace')}}><RefreshCw size={16}/></IconButton></div>)}</div><div className="outfit-bottom"><div className="spend-note"><span>{Object.values(data.outfit).filter(id=>!item(id).owned).length===0?'整套来自你的衣橱':'本套新增单品'}</span><b>{Object.values(data.outfit).filter(id=>!item(id).owned).length===0?'无需补购':`¥${Object.values(data.outfit).filter(id=>!item(id).owned).reduce((s,id)=>s+item(id).price,0)}`}</b></div><div className="two-buttons"><Button kind="secondary" onClick={()=>saveOutfit()}><Bookmark size={17}/>保存搭配</Button><Button onClick={()=>tryOn()}><Sparkles size={17}/>看看上身</Button></div></div></>;
+  const outfitPage = () => (
+    <>
+      <header className="page-header">
+        <div>
+          <span className="eyebrow">YOUR STYLE, IN THE MAKING</span>
+          <h1>今天，穿这套。</h1>
+        </div>
+        <IconButton label="查看已保存搭配" onClick={() => nav('mine')}>
+          <Bookmark size={20} />
+        </IconButton>
+      </header>
+      <div className="outfit-topline">
+        <button
+          className="capsule-select"
+          onClick={() => {
+            setStyleId(style.id === 'city' ? 'college' : 'city');
+            notify('已切换风格提示，搭配中的选择仍然保留');
+          }}
+        >
+          {style.name}
+          <ChevronDown size={14} />
+        </button>
+        <span>
+          <Sun size={15} />
+          {data.scene}
+        </span>
+      </div>
+      {board(data.outfit)}
+      <div className="board-actions">
+        <button onClick={shuffle}>
+          <RefreshCw size={15} />
+          换一种搭法
+        </button>
+        <button disabled={!previous} onClick={() => setComparing(!comparing)}>
+          <Layers size={15} />
+          {comparing ? '收起比较' : '对比上一套'}
+        </button>
+      </div>
+      {comparing && previous && (
+        <div className="compare-outfits">
+          <div>
+            <span>上一套</span>
+            {board(previous, true)}
+          </div>
+          <div>
+            <span>现在这套</span>
+            {board(data.outfit, true)}
+          </div>
+        </div>
+      )}
+      <div className="chips scene-chips">
+        {['轻松日常', '周末漫步', '见面时刻'].map((s) => (
+          <button
+            className={data.scene === s ? 'active' : ''}
+            key={s}
+            onClick={() => changeScene(s)}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      <div className="stylist-note">
+        <span className="mini-spark">
+          <Sparkles size={15} />
+        </span>
+        <div>
+          <b>一点搭配思路</b>
+          <p>
+            {data.outfit.coat === 'navy'
+              ? '深蓝带来清晰的层次，与柔白内搭和暖色长裤形成自然对比。'
+              : '用柔和的中性色连接整套造型，舒展的裤线让外套更显轻松。'}
+            {data.scene === '周末漫步'
+              ? '换上运动鞋，走远一点也自在。'
+              : data.scene === '见面时刻'
+                ? '保留简洁配饰，让细节轻轻发光。'
+                : '保留你熟悉的单品，尝试一点新鲜感。'}
+          </p>
+        </div>
+      </div>
+      <SectionTitle
+        title="保留喜欢的，调整其他"
+        action="相关推荐"
+        onClick={() => go('recommendations')}
+      />
+      <div className="outfit-items">
+        {(['coat', 'top', 'bottom', 'shoes', 'bag'] as Slot[]).map((s) => (
+          <div className="outfit-item" key={s}>
+            <button
+              className="outfit-item-image"
+              onClick={() => {
+                setSlot(s);
+                setSheet('replace');
+              }}
+              aria-label={`选择${slotNames[s]}`}
+            >
+              <ItemImage item={item(data.outfit[s])} />
+            </button>
+            <div>
+              <small>
+                {slotNames[s]} ·{' '}
+                {item(data.outfit[s]).owned ? '已有' : '待购买'}
+              </small>
+              <b>{item(data.outfit[s]).name}</b>
+            </div>
+            <IconButton
+              label={`${locked.includes(s) ? '解锁' : '锁定'}${slotNames[s]}`}
+              active={locked.includes(s)}
+              onClick={() =>
+                setLocked((l) =>
+                  l.includes(s) ? l.filter((x) => x !== s) : [...l, s],
+                )
+              }
+            >
+              {locked.includes(s) ? (
+                <LockKeyhole size={16} />
+              ) : (
+                <UnlockKeyhole size={16} />
+              )}
+            </IconButton>
+            <IconButton
+              label={`替换${slotNames[s]}`}
+              onClick={() => {
+                setSlot(s);
+                setSheet('replace');
+              }}
+            >
+              <RefreshCw size={16} />
+            </IconButton>
+          </div>
+        ))}
+      </div>
+      <div className="outfit-bottom">
+        <div className="spend-note">
+          <span>
+            {Object.values(data.outfit).filter((id) => !item(id).owned)
+              .length === 0
+              ? '整套来自你的衣橱'
+              : '本套新增单品'}
+          </span>
+          <b>
+            {Object.values(data.outfit).filter((id) => !item(id).owned)
+              .length === 0
+              ? '无需补购'
+              : `¥${Object.values(data.outfit)
+                  .filter((id) => !item(id).owned)
+                  .reduce((s, id) => s + item(id).price, 0)}`}
+          </b>
+        </div>
+        <div className="two-buttons">
+          <Button kind="secondary" onClick={() => saveOutfit()}>
+            <Bookmark size={17} />
+            保存搭配
+          </Button>
+          <Button onClick={() => tryOn()}>
+            <Sparkles size={17} />
+            看看上身
+          </Button>
+        </div>
+      </div>
+    </>
+  );
 
- const recommendations=()=>{const reference=item(productId||data.outfit.coat);const filtered=allItems.filter(g=>!g.owned&&(recType==='相似款'?g.category===reference.category:recType==='一起搭'?g.category!==reference.category:true)&&g.price<=budget&&`${g.name}${g.color}${g.category}${g.style}`.includes(query)&&(category==='全部'||g.category===category));return <><header className="page-header"><div><span className="eyebrow">A LITTLE SOMETHING NEW</span><h1>心动，也合拍。</h1></div><IconButton label="筛选推荐衣服" onClick={()=>setSheet('filter')}><SlidersHorizontal size={20}/></IconButton></header><p className="lead">从你的风格与衣橱里，找到下一件。</p><div className="rec-tabs">{['一起搭','相似款','补充衣橱'].map(t=><button key={t} className={recType===t?'active':''} onClick={()=>setRecType(t)}>{t}</button>)}</div><div className="rec-context"><Sparkles size={18}/><p>{recType==='一起搭'?'保留熟悉的单品，为正在搭配的这一套找一点新鲜感。':recType==='相似款'?'延续你喜欢的轮廓，看看不同颜色和材质的选择。':'从常穿的中性色出发，补充一件可以反复搭配的衣服。'}</p></div><div className="search-field"><Search size={17}/><input aria-label="搜索推荐单品" placeholder="试试搜索「蓝」或「针织」" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button aria-label="清除推荐搜索" onClick={()=>setQuery('')}><X size={15}/></button>}</div><div className="filter-line"><span>预算内 · ¥{budget} 以下</span><button className="text-link" onClick={()=>setSheet('filter')}>调整<SlidersHorizontal size={14}/></button></div>{filtered.length?<><div className="product-grid">{productCards(filtered)}</div><div className="match-explanation"><CheckCheck size={17}/><p>每件推荐都可以放进当前搭配里比较。<br/>先看看能怎么穿，再决定是否心动。</p></div></>:<div className="empty-state"><Search/><h3>这次没有找到合适的单品</h3><p>试着放宽预算或换一个关键词。</p><Button kind="secondary" onClick={()=>{setBudget(600);setCategory('全部');setQuery('')}}>重置筛选</Button></div>}<p className="subtle-note">精选商品与搭配理由为演示数据，未连接实时商家库存。</p></>};
+  const recommendations = () => {
+    const reference = item(productId || data.outfit.coat);
+    const filtered = allItems.filter(
+      (g) =>
+        !g.owned &&
+        (recType === '相似款'
+          ? g.category === reference.category
+          : recType === '一起搭'
+            ? g.category !== reference.category
+            : true) &&
+        g.price <= budget &&
+        `${g.name}${g.color}${g.category}${g.style}`.includes(query) &&
+        (category === '全部' || g.category === category),
+    );
+    return (
+      <>
+        <header className="page-header">
+          <div>
+            <span className="eyebrow">A LITTLE SOMETHING NEW</span>
+            <h1>心动，也合拍。</h1>
+          </div>
+          <IconButton label="筛选推荐衣服" onClick={() => setSheet('filter')}>
+            <SlidersHorizontal size={20} />
+          </IconButton>
+        </header>
+        <p className="lead">从你的风格与衣橱里，找到下一件。</p>
+        <div className="rec-tabs">
+          {['一起搭', '相似款', '补充衣橱'].map((t) => (
+            <button
+              key={t}
+              className={recType === t ? 'active' : ''}
+              onClick={() => setRecType(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <div className="rec-context">
+          <Sparkles size={18} />
+          <p>
+            {recType === '一起搭'
+              ? '保留熟悉的单品，为正在搭配的这一套找一点新鲜感。'
+              : recType === '相似款'
+                ? '延续你喜欢的轮廓，看看不同颜色和材质的选择。'
+                : '从常穿的中性色出发，补充一件可以反复搭配的衣服。'}
+          </p>
+        </div>
+        <div className="search-field">
+          <Search size={17} />
+          <input
+            aria-label="搜索推荐单品"
+            placeholder="试试搜索「蓝」或「针织」"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query && (
+            <button aria-label="清除推荐搜索" onClick={() => setQuery('')}>
+              <X size={15} />
+            </button>
+          )}
+        </div>
+        <div className="filter-line">
+          <span>预算内 · ¥{budget} 以下</span>
+          <button className="text-link" onClick={() => setSheet('filter')}>
+            调整
+            <SlidersHorizontal size={14} />
+          </button>
+        </div>
+        {filtered.length ? (
+          <>
+            <div className="product-grid">{productCards(filtered)}</div>
+            <div className="match-explanation">
+              <CheckCheck size={17} />
+              <p>
+                每件推荐都可以放进当前搭配里比较。
+                <br />
+                先看看能怎么穿，再决定是否心动。
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="empty-state">
+            <Search />
+            <h3>这次没有找到合适的单品</h3>
+            <p>试着放宽预算或换一个关键词。</p>
+            <Button
+              kind="secondary"
+              onClick={() => {
+                setBudget(600);
+                setCategory('全部');
+                setQuery('');
+              }}
+            >
+              重置筛选
+            </Button>
+          </div>
+        )}
+        <p className="subtle-note">
+          精选商品与搭配理由为演示数据，未连接实时商家库存。
+        </p>
+      </>
+    );
+  };
 
- const productPage=()=> <><div className="product-detail-hero"><ItemImage item={product}/><div className="floating-header"><IconButton label="返回上一页" onClick={back}><ArrowLeft size={20}/></IconButton><span>{product.owned?'FROM YOUR CLOSET':'THE MUSE SELECTION'}</span><IconButton label="收藏这件衣服" active={data.favorites.includes(product.id)} onClick={()=>toggleFavorite(product.id)}><Heart size={19} fill={data.favorites.includes(product.id)?'currentColor':'none'}/></IconButton></div><span className="detail-source">{product.owned?'已有衣服':'精选推荐 · 演示商品'}</span></div><div className="page-inner"><div className="detail-title"><div><span className="eyebrow">{product.en}</span><h1>{product.name}</h1></div><strong>{product.owned?'已拥有':`¥${product.price}`}</strong></div><p className="detail-attributes">{product.color}<span>·</span>{product.material}</p><div className="stylist-note"><span className="mini-spark"><Sparkles size={15}/></span><div><b>{product.owned?'这件衣服，还可以这样穿':'为什么推荐给你'}</b><p>{product.reason}</p></div></div><SectionTitle title="和你的这些单品很合拍"/><div className="related-items">{garments.filter(g=>g.owned&&g.category!==product.category).slice(0,3).map(g=><button key={g.id} onClick={()=>openProduct(g.id)}><ItemImage item={g}/><span>{g.name}</span></button>)}</div><div className="detail-facts"><div><span>衣物来源</span><b>{product.owned?'你的衣橱':'演示精选'}</b></div><div><span>上身预览</span><b>外观参考，不作为选码依据</b></div>{!product.owned&&<div><span>尺码与库存</span><b>尚未连接商家，请以商品页为准</b></div>}</div><div className="two-buttons"><Button kind="secondary" onClick={()=>tryOn(product.id)}>看看上身<ArrowUpRight size={16}/></Button><Button onClick={()=>{updateOutfit(product.id);nav('today')}}>用在今日搭配<Plus size={17}/></Button></div>{!product.owned&&<button className="full-text-button" onClick={()=>{toggleFavorite(product.id);notify(data.favorites.includes(product.id)?'已从心愿清单移除':'已加入心愿清单，不会自动加入衣橱')}}><Heart size={16}/>{data.favorites.includes(product.id)?'从心愿清单移除':'加入心愿清单'}</button>}<button className="text-link centered" onClick={()=>{setRecType('相似款');go('recommendations')}}>再看看相似的选择<ArrowRight size={15}/></button></div></>;
+  const productPage = () => (
+    <>
+      <div className="product-detail-hero">
+        <ItemImage item={product} />
+        <div className="floating-header">
+          <IconButton label="返回上一页" onClick={back}>
+            <ArrowLeft size={20} />
+          </IconButton>
+          <span>
+            {product.owned ? 'FROM YOUR CLOSET' : 'THE MUSE SELECTION'}
+          </span>
+          <IconButton
+            label="收藏这件衣服"
+            active={data.favorites.includes(product.id)}
+            onClick={() => toggleFavorite(product.id)}
+          >
+            <Heart
+              size={19}
+              fill={
+                data.favorites.includes(product.id) ? 'currentColor' : 'none'
+              }
+            />
+          </IconButton>
+        </div>
+        <span className="detail-source">
+          {product.owned ? '已有衣服' : '精选推荐 · 演示商品'}
+        </span>
+      </div>
+      <div className="page-inner">
+        <div className="detail-title">
+          <div>
+            <span className="eyebrow">{product.en}</span>
+            <h1>{product.name}</h1>
+          </div>
+          <strong>{product.owned ? '已拥有' : `¥${product.price}`}</strong>
+        </div>
+        <p className="detail-attributes">
+          {product.color}
+          <span>·</span>
+          {product.material}
+        </p>
+        <div className="stylist-note">
+          <span className="mini-spark">
+            <Sparkles size={15} />
+          </span>
+          <div>
+            <b>{product.owned ? '这件衣服，还可以这样穿' : '为什么推荐给你'}</b>
+            <p>{product.reason}</p>
+          </div>
+        </div>
+        <SectionTitle title="和你的这些单品很合拍" />
+        <div className="related-items">
+          {garments
+            .filter((g) => g.owned && g.category !== product.category)
+            .slice(0, 3)
+            .map((g) => (
+              <button key={g.id} onClick={() => openProduct(g.id)}>
+                <ItemImage item={g} />
+                <span>{g.name}</span>
+              </button>
+            ))}
+        </div>
+        <div className="detail-facts">
+          <div>
+            <span>衣物来源</span>
+            <b>{product.owned ? '你的衣橱' : '演示精选'}</b>
+          </div>
+          <div>
+            <span>上身预览</span>
+            <b>外观参考，不作为选码依据</b>
+          </div>
+          {!product.owned && (
+            <div>
+              <span>尺码与库存</span>
+              <b>尚未连接商家，请以商品页为准</b>
+            </div>
+          )}
+        </div>
+        <div className="two-buttons">
+          <Button kind="secondary" onClick={() => tryOn(product.id)}>
+            看看上身
+            <ArrowUpRight size={16} />
+          </Button>
+          <Button
+            onClick={() => {
+              updateOutfit(product.id);
+              nav('today');
+            }}
+          >
+            用在今日搭配
+            <Plus size={17} />
+          </Button>
+        </div>
+        {!product.owned && (
+          <button
+            className="full-text-button"
+            onClick={() => {
+              toggleFavorite(product.id);
+              notify(
+                data.favorites.includes(product.id)
+                  ? '已从心愿清单移除'
+                  : '已加入心愿清单，不会自动加入衣橱',
+              );
+            }}
+          >
+            <Heart size={16} />
+            {data.favorites.includes(product.id)
+              ? '从心愿清单移除'
+              : '加入心愿清单'}
+          </button>
+        )}
+        <button
+          className="text-link centered"
+          onClick={() => {
+            setRecType('相似款');
+            go('recommendations');
+          }}
+        >
+          再看看相似的选择
+          <ArrowRight size={15} />
+        </button>
+      </div>
+    </>
+  );
 
- const tryon=()=>{const selected=item(tryId);const validExample=['oat','navy'].includes(tryId);return <><header className="page-header back-header"><IconButton label="返回上一页" onClick={back}><ArrowLeft size={21}/></IconButton><div><span className="eyebrow">SEE IT, FEEL IT</span><h1>看看上身的感觉</h1></div><IconButton label="试衣接入状态" onClick={()=>setSheet('integration')}><MoreHorizontal size={21}/></IconButton></header><div className="tryon-stage">{cameraOn?<video ref={video} autoPlay playsInline muted aria-label="本机相机原始预览"/>:<ModelImage look={tryOriginal?0:tryId==='navy'?2:validExample?1:0}/>}<span className="tryon-badge"><span/>{cameraOn?'原始相机 · 未换装':'预生成示例 · 非实时'}</span>{!cameraOn&&<button className="tryon-compare" onClick={()=>setTryOriginal(!tryOriginal)}><Layers size={15}/>{tryOriginal?'查看示例穿搭':'对比原始穿搭'}</button>}<div className="tryon-stage-caption"><span>LOOK / {tryId==='navy'?'02':'01'}</span><i>A new perspective.</i></div></div>{!validExample&&!cameraOn&&<p className="inline-notice">当前没有这件衣物的预生成效果，上方展示原始示例模特。接入图片试穿后，可上传照片预览所选衣物。</p>}<div className="tryon-selected"><div><small>正在比较</small><b>{selected.name}</b></div><span>{selected.owned?'已有衣服':`¥${selected.price}`}</span></div><div className="tryon-options">{garments.filter(g=>['oat','navy'].includes(g.id)).map(g=><button key={g.id} aria-label={`预览${g.color}示例`} aria-pressed={tryId===g.id} className={tryId===g.id?'active':''} onClick={()=>{setTryId(g.id);setTryOriginal(false)}}><ItemImage item={g}/><span>{g.color}</span>{tryId===g.id&&<i><Check size={12}/></i>}</button>)}<button className="camera-option" onClick={startCamera}><Camera size={24}/><span>{cameraOn?'关闭相机':'我的相机'}</span></button></div>{cameraError&&<p className="inline-notice" role="alert">{cameraError}</p>}<p className="tryon-note"><ShieldCheck size={14}/>当前是预生成外套示例，尚未生成你的试穿图。<br/>相机预览在本机处理，不会上传视频。</p><div className="two-buttons"><Button kind="secondary" onClick={()=>{updateOutfit(tryId);saveOutfit({...data.outfit,[slotFor(item(tryId))]:tryId})}}><Bookmark size={17}/>保存搭配</Button><Button onClick={()=>{updateOutfit(tryId,undefined,true);setPage('today');setHistory([])}}>回到今日搭配<ArrowRight size={16}/></Button></div></>};
+  const tryon = () => {
+    const selected = item(tryId);
+    const validExample = ['oat', 'navy'].includes(tryId);
+    return (
+      <>
+        <header className="page-header back-header">
+          <IconButton label="返回上一页" onClick={back}>
+            <ArrowLeft size={21} />
+          </IconButton>
+          <div>
+            <span className="eyebrow">SEE IT, FEEL IT</span>
+            <h1>看看上身的感觉</h1>
+          </div>
+          <IconButton
+            label="试衣接入状态"
+            onClick={() => setSheet('integration')}
+          >
+            <MoreHorizontal size={21} />
+          </IconButton>
+        </header>
+        <div className="tryon-stage">
+          {cameraOn ? (
+            <video
+              ref={video}
+              autoPlay
+              playsInline
+              muted
+              aria-label="本机相机原始预览"
+            />
+          ) : (
+            <ModelImage
+              look={
+                tryOriginal ? 0 : tryId === 'navy' ? 2 : validExample ? 1 : 0
+              }
+            />
+          )}
+          <span className="tryon-badge">
+            <span />
+            {cameraOn ? '原始相机 · 未换装' : '预生成示例 · 非实时'}
+          </span>
+          {!cameraOn && (
+            <button
+              className="tryon-compare"
+              onClick={() => setTryOriginal(!tryOriginal)}
+            >
+              <Layers size={15} />
+              {tryOriginal ? '查看示例穿搭' : '对比原始穿搭'}
+            </button>
+          )}
+          <div className="tryon-stage-caption">
+            <span>LOOK / {tryId === 'navy' ? '02' : '01'}</span>
+            <i>A new perspective.</i>
+          </div>
+        </div>
+        {!validExample && !cameraOn && (
+          <p className="inline-notice">
+            当前没有这件衣物的预生成效果，上方展示原始示例模特。接入图片试穿后，可上传照片预览所选衣物。
+          </p>
+        )}
+        <div className="tryon-selected">
+          <div>
+            <small>正在比较</small>
+            <b>{selected.name}</b>
+          </div>
+          <span>{selected.owned ? '已有衣服' : `¥${selected.price}`}</span>
+        </div>
+        <div className="tryon-options">
+          {garments
+            .filter((g) => ['oat', 'navy'].includes(g.id))
+            .map((g) => (
+              <button
+                key={g.id}
+                aria-label={`预览${g.color}示例`}
+                aria-pressed={tryId === g.id}
+                className={tryId === g.id ? 'active' : ''}
+                onClick={() => {
+                  setTryId(g.id);
+                  setTryOriginal(false);
+                }}
+              >
+                <ItemImage item={g} />
+                <span>{g.color}</span>
+                {tryId === g.id && (
+                  <i>
+                    <Check size={12} />
+                  </i>
+                )}
+              </button>
+            ))}
+          <button className="camera-option" onClick={startCamera}>
+            <Camera size={24} />
+            <span>{cameraOn ? '关闭相机' : '我的相机'}</span>
+          </button>
+        </div>
+        {cameraError && (
+          <p className="inline-notice" role="alert">
+            {cameraError}
+          </p>
+        )}
+        <p className="tryon-note">
+          <ShieldCheck size={14} />
+          当前是预生成外套示例，尚未生成你的试穿图。
+          <br />
+          相机预览在本机处理，不会上传视频。
+        </p>
+        <div className="two-buttons">
+          <Button
+            kind="secondary"
+            onClick={() => {
+              updateOutfit(tryId);
+              saveOutfit({ ...data.outfit, [slotFor(item(tryId))]: tryId });
+            }}
+          >
+            <Bookmark size={17} />
+            保存搭配
+          </Button>
+          <Button
+            onClick={() => {
+              updateOutfit(tryId, undefined, true);
+              setPage('today');
+              setHistory([]);
+            }}
+          >
+            回到今日搭配
+            <ArrowRight size={16} />
+          </Button>
+        </div>
+      </>
+    );
+  };
 
- const mine=()=> <><header className="page-header"><div><span className="eyebrow">A WARDROBE THAT KNOWS YOU</span><h1>我的风格日记</h1></div><IconButton label="原型设置" onClick={()=>setSheet('settings')}><Menu size={20}/></IconButton></header><div className="profile-card"><div className="profile-avatar">M<span>✳</span></div><div><h2>穿成喜欢的自己。</h2><p>你的每次选择，都让风格更清晰。</p></div></div><div className="personal-stats"><div><b>{data.saved.length}</b><span>保存搭配</span></div><div><b>{data.styleLikes.length}</b><span>风格灵感</span></div><div><b>{data.favorites.length}</b><span>收藏单品</span></div></div><SectionTitle en="YOUR LOOKBOOK" title="喜欢的搭配，留在这里"/>{data.saved.length?<div className="saved-outfits">{data.saved.map(s=><article key={s.id}><div className="saved-board">{board(s.outfit,true)}<button className="saved-open" onClick={()=>{setData(d=>openLookInScene(d,s.scene,{outfit:s.outfit,canvasLayout:s.canvasLayout}));nav('today')}} aria-label={`编辑${s.title}`}>编辑这套<ArrowUpRight size={14}/></button></div><div className="saved-caption"><div><b>{s.title}</b><small>{s.worn?`穿过 · ${s.worn}`:'随时可以再穿一次'}</small></div><button aria-label={`记录${s.title}的穿着反馈`} onClick={()=>{setFeedbackId(s.id);setSheet('feedback')}}>{s.worn?<CheckCheck size={19}/>:<Plus size={20}/>}</button></div></article>)}</div>:<div className="empty-lookbook"><Layers size={27}/><h3>下一套喜欢的，<br/>就留在这里。</h3><p>保存你喜欢的组合，下次穿衣更轻松。</p><Button kind="secondary" onClick={()=>pickToday()}>搭配我的第一套<ArrowRight size={16}/></Button></div>}{data.styleLikes.length>0&&<><SectionTitle en="SAVED INSPIRATION" title="收藏的风格"/><div className="saved-style-list">{styles.filter(s=>data.styleLikes.includes(s.id)).map(s=><button key={s.id} onClick={()=>{setStyleId(s.id);go('style')}}><img src={s.image} alt=""/><div><b>{s.name}</b><small>{s.en}</small></div><ArrowUpRight size={17}/></button>)}</div></>}{data.favorites.length>0&&<><SectionTitle en="SAVED PIECES" title="收藏的单品"/><div className="product-grid favorites-grid">{productCards(allItems.filter(g=>data.favorites.includes(g.id)))}</div></>}<button className="settings-row" onClick={()=>{setClosetMode('心愿清单');nav('closet')}}><Heart size={19}/><span>我的心愿清单</span><ChevronRight size={17}/></button><button className="settings-row" onClick={()=>setSheet('integration')}><Video size={19}/><span>试衣体验与接入状态</span><ChevronRight size={17}/></button><div className="brand-signoff">muse<span>✳</span><small>STYLE IS A LITTLE MORE YOU.</small></div></>;
+  const mine = () => (
+    <>
+      <header className="page-header">
+        <div>
+          <span className="eyebrow">A WARDROBE THAT KNOWS YOU</span>
+          <h1>我的风格日记</h1>
+        </div>
+        <IconButton label="原型设置" onClick={() => setSheet('settings')}>
+          <Menu size={20} />
+        </IconButton>
+      </header>
+      <div className="profile-card">
+        <div className="profile-avatar">
+          M<span>✳</span>
+        </div>
+        <div>
+          <h2>穿成喜欢的自己。</h2>
+          <p>你的每次选择，都让风格更清晰。</p>
+        </div>
+      </div>
+      <div className="personal-stats">
+        <div>
+          <b>{data.saved.length}</b>
+          <span>保存搭配</span>
+        </div>
+        <div>
+          <b>{data.styleLikes.length}</b>
+          <span>风格灵感</span>
+        </div>
+        <div>
+          <b>{data.favorites.length}</b>
+          <span>收藏单品</span>
+        </div>
+      </div>
+      <SectionTitle en="YOUR LOOKBOOK" title="喜欢的搭配，留在这里" />
+      {data.saved.length ? (
+        <div className="saved-outfits">
+          {data.saved.map((s) => (
+            <article key={s.id}>
+              <div className="saved-board">
+                {board(s.outfit, true)}
+                <button
+                  className="saved-open"
+                  onClick={() => {
+                    setData((d) =>
+                      openLookInScene(d, s.scene, {
+                        outfit: s.outfit,
+                        canvasLayout: s.canvasLayout,
+                      }),
+                    );
+                    nav('today');
+                  }}
+                  aria-label={`编辑${s.title}`}
+                >
+                  编辑这套
+                  <ArrowUpRight size={14} />
+                </button>
+              </div>
+              <div className="saved-caption">
+                <div>
+                  <b>{s.title}</b>
+                  <small>
+                    {s.worn ? `穿过 · ${s.worn}` : '随时可以再穿一次'}
+                  </small>
+                </div>
+                <button
+                  aria-label={`记录${s.title}的穿着反馈`}
+                  onClick={() => {
+                    setFeedbackId(s.id);
+                    setSheet('feedback');
+                  }}
+                >
+                  {s.worn ? <CheckCheck size={19} /> : <Plus size={20} />}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="empty-lookbook">
+          <Layers size={27} />
+          <h3>
+            下一套喜欢的，
+            <br />
+            就留在这里。
+          </h3>
+          <p>保存你喜欢的组合，下次穿衣更轻松。</p>
+          <Button kind="secondary" onClick={() => pickToday()}>
+            搭配我的第一套
+            <ArrowRight size={16} />
+          </Button>
+        </div>
+      )}
+      {data.styleLikes.length > 0 && (
+        <>
+          <SectionTitle en="SAVED INSPIRATION" title="收藏的风格" />
+          <div className="saved-style-list">
+            {styles
+              .filter((s) => data.styleLikes.includes(s.id))
+              .map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    setStyleId(s.id);
+                    go('style');
+                  }}
+                >
+                  <img src={s.image} alt="" />
+                  <div>
+                    <b>{s.name}</b>
+                    <small>{s.en}</small>
+                  </div>
+                  <ArrowUpRight size={17} />
+                </button>
+              ))}
+          </div>
+        </>
+      )}
+      {data.favorites.length > 0 && (
+        <>
+          <SectionTitle en="SAVED PIECES" title="收藏的单品" />
+          <div className="product-grid favorites-grid">
+            {productCards(
+              allItems.filter((g) => data.favorites.includes(g.id)),
+            )}
+          </div>
+        </>
+      )}
+      <button
+        className="settings-row"
+        onClick={() => {
+          setClosetMode('心愿清单');
+          nav('closet');
+        }}
+      >
+        <Heart size={19} />
+        <span>我的心愿清单</span>
+        <ChevronRight size={17} />
+      </button>
+      <button className="settings-row" onClick={() => setSheet('integration')}>
+        <Video size={19} />
+        <span>试衣体验与接入状态</span>
+        <ChevronRight size={17} />
+      </button>
+      <div className="brand-signoff">
+        muse<span>✳</span>
+        <small>STYLE IS A LITTLE MORE YOU.</small>
+      </div>
+    </>
+  );
 
- const sheetBody=()=>{
-  if(sheet==='today-picker')return <WardrobePicker outfit={data.outfit} items={allItems} initialSlot={todaySlot} mode={pickerMode} renderItem={g=><ItemImage item={g}/>} onAdd={()=>setSheet('add-items')} onApply={outfit=>{setData(d=>({...d,outfit}));setSheet(null);nav('today');notify('已更新首页的今日搭配')}}/>;
- if(sheet==='add-items')return <AddItems items={allItems} renderItem={g=><ItemImage item={g}/>} onPhoto={()=>fileInput.current?.click()} onAdd={items=>{setData(d=>({...d,uploads:[...items,...d.uploads]}));setSheet(null);notify(`已加入 ${items.length} 件衣物`);}}/>;
-  if(sheet==='replace'){const list=allItems.filter(g=>g.category===slotNames[slot]);return <><p className="sheet-lead">只替换{slotNames[slot]}，其他选择与锁定单品都会保留。</p><div className="replacement-list">{list.map(g=><button key={g.id} onClick={()=>updateOutfit(g.id,slot)}><ItemImage item={g}/><div><b>{g.name}</b><small>{g.owned?'已有衣服':`精选推荐 · ¥${g.price}`} · {g.color}</small></div>{data.outfit[slot]===g.id?<Check size={19}/>:<Plus size={19}/>}</button>)}</div><Button kind="secondary" onClick={()=>{setSheet(null);setCategory(slotNames[slot]);go('recommendations')}}>探索相关单品<ArrowUpRight size={16}/></Button></>}
-  if(sheet==='filter')return <><label className="form-label" htmlFor="budget">单品预算上限<strong>¥{budget}</strong></label><input id="budget" className="range" type="range" min="100" max="800" step="50" value={budget} onChange={e=>setBudget(Number(e.target.value))}/><label className="form-label">品类</label><div className="chips wrap">{categories.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div><Button onClick={()=>setSheet(null)}>查看推荐单品<ArrowRight size={16}/></Button></>;
-  if(sheet==='search')return <><p className="sheet-lead">找一种感觉，或一件喜欢的衣服。</p><div className="search-field"><Search size={17}/><input autoFocus aria-label="输入搜索内容" placeholder="都市、蓝色、针织…" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){setSheet(null);go('recommendations')}}}/></div><div className="chips wrap">{['午夜蓝','针织','都市轮廓'].map(t=><button key={t} onClick={()=>{setQuery(t);setSheet(null);go('recommendations')}}>{t}<ArrowUpRight size={13}/></button>)}</div><Button onClick={()=>{setSheet(null);go('recommendations')}}>搜索相关单品<Search size={16}/></Button></>;
-  if(sheet==='upload')return <><div className="upload-preview"><img src={upload} alt="待加入衣橱的本地照片"/></div><label className="form-label" htmlFor="garment-name">给它一个名字</label><input id="garment-name" className="text-input" value={uploadName} onChange={e=>setUploadName(e.target.value)}/><label className="form-label" htmlFor="garment-category">放到哪个分类</label><select id="garment-category" className="text-input" value={uploadCategory} onChange={e=>setUploadCategory(e.target.value as Category)}>{categories.filter(c=>c!=='全部').map(c=><option key={c}>{c}</option>)}</select><p className="sheet-lead small"><ShieldCheck size={14}/>仅保存在当前浏览器，不上传照片。</p><Button disabled={!uploadName.trim()} onClick={addUpload}>加入我的衣橱<Plus size={17}/></Button></>;
-  if(sheet==='feedback')return <><p className="sheet-lead">实际穿过之后，记下一点感受。它会保存在这套搭配里。</p><div className="feedback-options">{['喜欢，想再穿','舒服自在','有点太正式','穿着不舒服'].map(f=><button key={f} onClick={()=>{setData(d=>({...d,saved:d.saved.map(s=>s.id===feedbackId?{...s,worn:f}:s),feedback:{...d.feedback,[feedbackId]:f}}));setSheet(null);notify('已记录真实穿着反馈')}}>{f}<ArrowUpRight size={17}/></button>)}</div></>;
-  if(sheet==='integration')return <><div className="integration-symbol"><Video size={26}/></div><h3 className="sheet-subtitle">为真正的试衣，留好位置。</h3><p className="sheet-lead">当前展示预生成示例。接下来将支持上传照片，预览所选穿搭；相机按钮目前只提供本机原始预览。</p><div className="integration-details"><div><span>图片试穿方案</span><b>Seedream · 待接入</b></div><div><span>当前状态</span><b className="olive">演示模式</b></div><div><span>计划支持</span><b>人物照片 + 服装参考图</b></div></div><p className="sheet-lead small">照片试穿用于预览外观。尺码建议仍依据尺码表与真实反馈；实时视频试穿作为后续功能。</p><Button onClick={()=>setSheet(null)}>明白了<Check size={17}/></Button></>;
-  return <><p className="sheet-lead">这是 MUSE 手机端前端原型。衣橱、收藏与搭配保存在当前浏览器。商品、价格、推荐与试衣效果均为演示数据。</p><Button kind="secondary" onClick={()=>{setSheet(null);nav('today')}}>从今日搭配开始体验<ArrowRight size={17}/></Button><button className="reset-button" onClick={reset}><RefreshCw size={16}/>重置本应用演示数据</button><p className="subtle-note">仅清除 MUSE 本地演示记录，不影响其他应用。</p></>;
- };
- const currentTab=page==='outfit'||page==='tryon'?'today':page==='style'||page==='recommendations'?'discover':page==='product'?(product.owned?'closet':'discover'):page;
- const render=()=>page==='today'?<TodayHome layout={data.canvasLayout} outfit={data.outfit} items={allItems} scene={data.scene} confirmed={data.confirmedLook?.day===localDay()&&data.confirmedLook?.signature===JSON.stringify([data.outfit,data.scene])} renderItem={(g,c)=><ItemImage item={g} className={c}/>} onPick={pickToday} onEdit={()=>go('outfit')} onSave={()=>{setClosetMode('搭配');nav('closet')}} onConfirm={confirmToday} onTryOn={()=>tryOn()} onCloset={()=>{setClosetMode('已有衣服');nav('closet')}} onScene={changeScene} customized={hasSceneChanges(data)} onRestoreScene={restoreScene} onInspiration={()=>nav('discover')}/>:page==='discover'?discover():page==='closet'?<ClosetGallery onChoose={()=>pickToday()} initialTab={closetMode==='搭配'?'搭配':closetMode==='心愿清单'?'心愿':'衣物'} items={allItems} saved={data.saved} favorites={data.favorites} renderItem={(g,c)=><ItemImage item={g} className={c}/>} onOpen={openProduct} onAdd={()=>setSheet('add-items')} onOutfit={saved=>{if(!saved){pickToday();return;}setData(d=>openLookInScene(d,saved.scene,{outfit:saved.outfit,canvasLayout:saved.canvasLayout}));nav('today')}} onFavorite={toggleFavorite}/>:page==='outfit'?<StyleStudio key={data.scene} initialMode="canvas" onHome={()=>nav('today')} layout={data.canvasLayout} onLayoutChange={layout=>setData(d=>({...d,canvasLayout:layout}))} outfit={data.outfit} items={allItems} locked={locked} favorites={data.favorites} renderItem={(g,c)=><ItemImage item={g} className={c}/>} onChange={(id,slot)=>updateOutfit(id,slot,true)} onToggleLock={slot=>setLocked(old=>old.includes(slot)?old.filter(x=>x!==slot):[...old,slot])} onPickSlot={slot=>{setSlot(slot);setSheet('replace')}} onShuffle={shuffle} onSave={layout=>{saveOutfit(data.outfit,layout);nav('today')}} onTryOn={()=>tryOn()} onBrowse={()=>{setProductId(data.outfit.coat);setRecType('一起搭');setCategory('全部');setQuery('');go('recommendations')}} onSaved={()=>{setClosetMode('搭配');nav('closet')}}/>:page==='mine'?mine():page==='style'?stylePage():page==='product'?productPage():page==='tryon'?tryon():recommendations();
- return <div className="presentation"><aside className="demo-pane"><a className="desktop-wordmark" href="#" onClick={e=>{e.preventDefault();nav('today')}}>muse<span>✳</span></a><span className="desktop-label">PERSONAL STYLE, REIMAGINED</span><h1>今天穿什么，<br/><em>从你的衣橱开始。</em></h1><p>选几件喜欢的衣服，搭成今天的自己。<br/>所有调整，都回到首页这套穿搭。</p><div className="demo-divider"/><div className="demo-guide-label"><span>体验这段旅程</span><small>交互原型 / MOBILE</small></div><div className="demo-steps">{demoSteps.map((s,i)=><button className={page===s.page?'active':''} key={s.page} onClick={()=>{setPage(s.page);setHistory([])}}><span className="demo-step-number">0{i+1}</span><div><b>{s.label}</b><small>{s.detail}</small></div><ArrowUpRight size={17}/></button>)}</div><button className="desktop-reset" onClick={reset}><RefreshCw size={14}/>重置演示</button><p className="desktop-footnote">手机打开链接，即可全屏体验。<br/>当前为示例预览，图片试穿方案已备好。</p></aside><div className="device-area"><div className="phone"><div className="device-status"><span>9:41</span><i/><span><span className="signal">▮▮▮</span><span className="battery"/></span></div><div ref={scroller} className={`app-content page-${page}`}>{render()}</div><MobileTabBar current={currentTab} onNavigate={p=>{if(p==='closet')setClosetMode('已有衣服');nav(p)}}/>{toast&&<div className="toast" role="status"><CheckCheck size={17}/><span>{toast}</span></div>}{sheet&&sheet!=='today-picker'&&<div className="sheet-layer"><button className="sheet-backdrop" aria-label="关闭弹层" onClick={()=>setSheet(null)}/><section className={`bottom-sheet `} role="dialog" tabIndex={-1} aria-modal="true" aria-labelledby="sheet-title"><div className="sheet-handle"/><header><h2 id="sheet-title">{sheet==='add-items'?'添加衣物':sheet==='replace'?`为这套搭配换件${slotNames[slot]}`:sheet==='filter'?'找到合适的那件':sheet==='upload'?'加入我的衣橱':sheet==='feedback'?'今天穿起来，感觉如何？':sheet==='search'?'寻找一点灵感':sheet==='integration'?'试衣体验说明':'关于这次体验'}</h2><IconButton label="关闭" onClick={()=>setSheet(null)}><X size={20}/></IconButton></header><div className="sheet-content">{sheetBody()}</div></section></div>}<WardrobeSheet open={sheet==='today-picker'} title={pickerMode==='single'?'换件衣服':'从衣橱选衣'} onClose={()=>setSheet(null)}>{sheet==='today-picker'&&sheetBody()}</WardrobeSheet><input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={e=>{uploadFile(e.target.files?.[0]);e.target.value=''}}/></div><div className="device-caption"><span className="caption-dot"/>MUSE MOBILE PROTOTYPE<span>EXPLORE. STYLE. REPEAT.</span></div></div></div>;
+  const sheetBody = () => {
+    if (sheet === 'today-picker')
+      return (
+        <WardrobePicker
+          outfit={data.outfit}
+          items={allItems}
+          initialSlot={todaySlot}
+          mode={pickerMode}
+          renderItem={(g) => <ItemImage item={g} />}
+          onAdd={() => setSheet('add-items')}
+          onApply={(outfit) => {
+            setData((d) => ({ ...d, outfit }));
+            setSheet(null);
+            nav('today');
+            notify('已更新首页的今日搭配');
+          }}
+        />
+      );
+    if (sheet === 'add-items')
+      return (
+        <AddItems
+          items={allItems}
+          renderItem={(g) => <ItemImage item={g} />}
+          onPhoto={() => fileInput.current?.click()}
+          onAdd={(items) => {
+            setData((d) => ({ ...d, uploads: [...items, ...d.uploads] }));
+            setSheet(null);
+            notify(`已加入 ${items.length} 件衣物`);
+          }}
+        />
+      );
+    if (sheet === 'replace') {
+      const list = allItems.filter((g) => g.category === slotNames[slot]);
+      return (
+        <>
+          <p className="sheet-lead">
+            只替换{slotNames[slot]}，其他选择与锁定单品都会保留。
+          </p>
+          <div className="replacement-list">
+            {list.map((g) => (
+              <button key={g.id} onClick={() => updateOutfit(g.id, slot)}>
+                <ItemImage item={g} />
+                <div>
+                  <b>{g.name}</b>
+                  <small>
+                    {g.owned ? '已有衣服' : `精选推荐 · ¥${g.price}`} ·{' '}
+                    {g.color}
+                  </small>
+                </div>
+                {data.outfit[slot] === g.id ? (
+                  <Check size={19} />
+                ) : (
+                  <Plus size={19} />
+                )}
+              </button>
+            ))}
+          </div>
+          <Button
+            kind="secondary"
+            onClick={() => {
+              setSheet(null);
+              setCategory(slotNames[slot]);
+              go('recommendations');
+            }}
+          >
+            探索相关单品
+            <ArrowUpRight size={16} />
+          </Button>
+        </>
+      );
+    }
+    if (sheet === 'filter')
+      return (
+        <>
+          <label className="form-label" htmlFor="budget">
+            单品预算上限<strong>¥{budget}</strong>
+          </label>
+          <input
+            id="budget"
+            className="range"
+            type="range"
+            min="100"
+            max="800"
+            step="50"
+            value={budget}
+            onChange={(e) => setBudget(Number(e.target.value))}
+          />
+          <label className="form-label">品类</label>
+          <div className="chips wrap">
+            {categories.map((c) => (
+              <button
+                key={c}
+                className={category === c ? 'active' : ''}
+                onClick={() => setCategory(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <Button onClick={() => setSheet(null)}>
+            查看推荐单品
+            <ArrowRight size={16} />
+          </Button>
+        </>
+      );
+    if (sheet === 'search')
+      return (
+        <>
+          <p className="sheet-lead">找一种感觉，或一件喜欢的衣服。</p>
+          <div className="search-field">
+            <Search size={17} />
+            <input
+              autoFocus
+              aria-label="输入搜索内容"
+              placeholder="都市、蓝色、针织…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setSheet(null);
+                  go('recommendations');
+                }
+              }}
+            />
+          </div>
+          <div className="chips wrap">
+            {['午夜蓝', '针织', '都市轮廓'].map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  setQuery(t);
+                  setSheet(null);
+                  go('recommendations');
+                }}
+              >
+                {t}
+                <ArrowUpRight size={13} />
+              </button>
+            ))}
+          </div>
+          <Button
+            onClick={() => {
+              setSheet(null);
+              go('recommendations');
+            }}
+          >
+            搜索相关单品
+            <Search size={16} />
+          </Button>
+        </>
+      );
+    if (sheet === 'upload')
+      return (
+        <>
+          <div className="upload-preview">
+            <img src={upload} alt="待加入衣橱的本地照片" />
+          </div>
+          <label className="form-label" htmlFor="garment-name">
+            给它一个名字
+          </label>
+          <input
+            id="garment-name"
+            className="text-input"
+            value={uploadName}
+            onChange={(e) => setUploadName(e.target.value)}
+          />
+          <label className="form-label" htmlFor="garment-category">
+            放到哪个分类
+          </label>
+          <select
+            id="garment-category"
+            className="text-input"
+            value={uploadCategory}
+            onChange={(e) => setUploadCategory(e.target.value as Category)}
+          >
+            {categories
+              .filter((c) => c !== '全部')
+              .map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+          </select>
+          <p className="sheet-lead small">
+            <ShieldCheck size={14} />
+            仅保存在当前浏览器，不上传照片。
+          </p>
+          <Button disabled={!uploadName.trim()} onClick={addUpload}>
+            加入我的衣橱
+            <Plus size={17} />
+          </Button>
+        </>
+      );
+    if (sheet === 'feedback')
+      return (
+        <>
+          <p className="sheet-lead">
+            实际穿过之后，记下一点感受。它会保存在这套搭配里。
+          </p>
+          <div className="feedback-options">
+            {['喜欢，想再穿', '舒服自在', '有点太正式', '穿着不舒服'].map(
+              (f) => (
+                <button
+                  key={f}
+                  onClick={() => {
+                    setData((d) => ({
+                      ...d,
+                      saved: d.saved.map((s) =>
+                        s.id === feedbackId ? { ...s, worn: f } : s,
+                      ),
+                      feedback: { ...d.feedback, [feedbackId]: f },
+                    }));
+                    setSheet(null);
+                    notify('已记录真实穿着反馈');
+                  }}
+                >
+                  {f}
+                  <ArrowUpRight size={17} />
+                </button>
+              ),
+            )}
+          </div>
+        </>
+      );
+    if (sheet === 'integration')
+      return (
+        <>
+          <div className="integration-symbol">
+            <Video size={26} />
+          </div>
+          <h3 className="sheet-subtitle">为真正的试衣，留好位置。</h3>
+          <p className="sheet-lead">
+            当前展示预生成示例。接下来将支持上传照片，预览所选穿搭；相机按钮目前只提供本机原始预览。
+          </p>
+          <div className="integration-details">
+            <div>
+              <span>图片试穿方案</span>
+              <b>Seedream · 待接入</b>
+            </div>
+            <div>
+              <span>当前状态</span>
+              <b className="olive">演示模式</b>
+            </div>
+            <div>
+              <span>计划支持</span>
+              <b>人物照片 + 服装参考图</b>
+            </div>
+          </div>
+          <p className="sheet-lead small">
+            照片试穿用于预览外观。尺码建议仍依据尺码表与真实反馈；实时视频试穿作为后续功能。
+          </p>
+          <Button onClick={() => setSheet(null)}>
+            明白了
+            <Check size={17} />
+          </Button>
+        </>
+      );
+    return (
+      <>
+        <p className="sheet-lead">
+          这是 MUSE
+          手机端前端原型。衣橱、收藏与搭配保存在当前浏览器。商品、价格、推荐与试衣效果均为演示数据。
+        </p>
+        <Button
+          kind="secondary"
+          onClick={() => {
+            setSheet(null);
+            nav('today');
+          }}
+        >
+          从今日搭配开始体验
+          <ArrowRight size={17} />
+        </Button>
+        <button className="reset-button" onClick={reset}>
+          <RefreshCw size={16} />
+          重置本应用演示数据
+        </button>
+        <p className="subtle-note">
+          仅清除 MUSE 本地演示记录，不影响其他应用。
+        </p>
+      </>
+    );
+  };
+  const currentTab =
+    page === 'outfit' || page === 'tryon'
+      ? 'today'
+      : page === 'style' || page === 'recommendations'
+        ? 'discover'
+        : page === 'product'
+          ? product.owned
+            ? 'closet'
+            : 'discover'
+          : page;
+  const render = () =>
+    page === 'today' ? (
+      <TodayHome
+        layout={data.canvasLayout}
+        outfit={data.outfit}
+        items={allItems}
+        scene={data.scene}
+        confirmed={
+          data.confirmedLook?.day === localDay() &&
+          data.confirmedLook?.signature ===
+            JSON.stringify([data.outfit, data.scene])
+        }
+        renderItem={(g, c) => <ItemImage item={g} className={c} />}
+        onPick={pickToday}
+        onEdit={() => go('outfit')}
+        onSave={() => {
+          setClosetMode('搭配');
+          nav('closet');
+        }}
+        onConfirm={confirmToday}
+        onTryOn={() => tryOn()}
+        onCloset={() => {
+          setClosetMode('已有衣服');
+          nav('closet');
+        }}
+        onScene={changeScene}
+        customized={hasSceneChanges(data)}
+        onRestoreScene={restoreScene}
+        onInspiration={() => nav('discover')}
+      />
+    ) : page === 'discover' ? (
+      discover()
+    ) : page === 'closet' ? (
+      <ClosetGallery
+        onChoose={() => pickToday()}
+        initialTab={
+          closetMode === '搭配'
+            ? '搭配'
+            : closetMode === '心愿清单'
+              ? '心愿'
+              : '衣物'
+        }
+        items={allItems}
+        saved={data.saved}
+        favorites={data.favorites}
+        renderItem={(g, c) => <ItemImage item={g} className={c} />}
+        onOpen={openProduct}
+        onAdd={() => setSheet('add-items')}
+        onOutfit={(saved) => {
+          if (!saved) {
+            pickToday();
+            return;
+          }
+          setData((d) =>
+            openLookInScene(d, saved.scene, {
+              outfit: saved.outfit,
+              canvasLayout: saved.canvasLayout,
+            }),
+          );
+          nav('today');
+        }}
+        onFavorite={toggleFavorite}
+      />
+    ) : page === 'outfit' ? (
+      <StyleStudio
+        key={data.scene}
+        initialMode="canvas"
+        onHome={() => nav('today')}
+        layout={data.canvasLayout}
+        onLayoutChange={(layout) =>
+          setData((d) => ({ ...d, canvasLayout: layout }))
+        }
+        outfit={data.outfit}
+        items={allItems}
+        locked={locked}
+        favorites={data.favorites}
+        renderItem={(g, c) => <ItemImage item={g} className={c} />}
+        onChange={(id, slot) => updateOutfit(id, slot, true)}
+        onToggleLock={(slot) =>
+          setLocked((old) =>
+            old.includes(slot) ? old.filter((x) => x !== slot) : [...old, slot],
+          )
+        }
+        onPickSlot={(slot) => {
+          setSlot(slot);
+          setSheet('replace');
+        }}
+        onShuffle={shuffle}
+        onSave={(layout) => {
+          saveOutfit(data.outfit, layout);
+          nav('today');
+        }}
+        onTryOn={() => tryOn()}
+        onBrowse={() => {
+          setProductId(data.outfit.coat);
+          setRecType('一起搭');
+          setCategory('全部');
+          setQuery('');
+          go('recommendations');
+        }}
+        onSaved={() => {
+          setClosetMode('搭配');
+          nav('closet');
+        }}
+      />
+    ) : page === 'mine' ? (
+      mine()
+    ) : page === 'style' ? (
+      stylePage()
+    ) : page === 'product' ? (
+      productPage()
+    ) : page === 'tryon' ? (
+      tryon()
+    ) : (
+      recommendations()
+    );
+  return (
+    <div className="presentation">
+      <aside className="demo-pane">
+        <a
+          className="desktop-wordmark"
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            nav('today');
+          }}
+        >
+          muse<span>✳</span>
+        </a>
+        <span className="desktop-label">PERSONAL STYLE, REIMAGINED</span>
+        <h1>
+          今天穿什么，
+          <br />
+          <em>从你的衣橱开始。</em>
+        </h1>
+        <p>
+          选几件喜欢的衣服，搭成今天的自己。
+          <br />
+          所有调整，都回到首页这套穿搭。
+        </p>
+        <div className="demo-divider" />
+        <div className="demo-guide-label">
+          <span>体验这段旅程</span>
+          <small>交互原型 / MOBILE</small>
+        </div>
+        <div className="demo-steps">
+          {demoSteps.map((s, i) => (
+            <button
+              className={page === s.page ? 'active' : ''}
+              key={s.page}
+              onClick={() => {
+                setPage(s.page);
+                setHistory([]);
+              }}
+            >
+              <span className="demo-step-number">0{i + 1}</span>
+              <div>
+                <b>{s.label}</b>
+                <small>{s.detail}</small>
+              </div>
+              <ArrowUpRight size={17} />
+            </button>
+          ))}
+        </div>
+        <button className="desktop-reset" onClick={reset}>
+          <RefreshCw size={14} />
+          重置演示
+        </button>
+        <p className="desktop-footnote">
+          手机打开链接，即可全屏体验。
+          <br />
+          当前为示例预览，图片试穿方案已备好。
+        </p>
+      </aside>
+      <div className="device-area">
+        <div className="phone">
+          <div className="device-status">
+            <span>9:41</span>
+            <i />
+            <span>
+              <span className="signal">▮▮▮</span>
+              <span className="battery" />
+            </span>
+          </div>
+          <div ref={scroller} className={`app-content page-${page}`}>
+            {render()}
+          </div>
+          <MobileTabBar
+            current={currentTab}
+            onNavigate={(p) => {
+              if (p === 'closet') setClosetMode('已有衣服');
+              nav(p);
+            }}
+          />
+          {toast && (
+            <div className="toast" role="status">
+              <CheckCheck size={17} />
+              <span>{toast}</span>
+            </div>
+          )}
+          {sheet && sheet !== 'today-picker' && (
+            <div className="sheet-layer">
+              <button
+                className="sheet-backdrop"
+                aria-label="关闭弹层"
+                onClick={() => setSheet(null)}
+              />
+              <section
+                className={`bottom-sheet `}
+                role="dialog"
+                tabIndex={-1}
+                aria-modal="true"
+                aria-labelledby="sheet-title"
+              >
+                <div className="sheet-handle" />
+                <header>
+                  <h2 id="sheet-title">
+                    {sheet === 'add-items'
+                      ? '添加衣物'
+                      : sheet === 'replace'
+                        ? `为这套搭配换件${slotNames[slot]}`
+                        : sheet === 'filter'
+                          ? '找到合适的那件'
+                          : sheet === 'upload'
+                            ? '加入我的衣橱'
+                            : sheet === 'feedback'
+                              ? '今天穿起来，感觉如何？'
+                              : sheet === 'search'
+                                ? '寻找一点灵感'
+                                : sheet === 'integration'
+                                  ? '试衣体验说明'
+                                  : '关于这次体验'}
+                  </h2>
+                  <IconButton label="关闭" onClick={() => setSheet(null)}>
+                    <X size={20} />
+                  </IconButton>
+                </header>
+                <div className="sheet-content">{sheetBody()}</div>
+              </section>
+            </div>
+          )}
+          <WardrobeSheet
+            open={sheet === 'today-picker'}
+            title={pickerMode === 'single' ? '换件衣服' : '从衣橱选衣'}
+            onClose={() => setSheet(null)}
+          >
+            {sheet === 'today-picker' && sheetBody()}
+          </WardrobeSheet>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            hidden
+            onChange={(e) => {
+              uploadFile(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
+        </div>
+        <div className="device-caption">
+          <span className="caption-dot" />
+          MUSE MOBILE PROTOTYPE<span>EXPLORE. STYLE. REPEAT.</span>
+        </div>
+      </div>
+    </div>
+  );
 }

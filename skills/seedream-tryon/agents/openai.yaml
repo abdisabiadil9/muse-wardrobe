@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Seedream 图片试穿'
+  short_description: '接入人物参考图与服装单品生成，包含离线预览、任务恢复和可移植适配器'
+  default_prompt: '使用 $seedream-tryon 为我的应用接入原始人物照片与选定衣物的图片试穿，先验证离线请求和失败恢复。'

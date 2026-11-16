@@ -16,7 +16,21 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: muse
+          POSTGRES_PASSWORD: muse_local_dev
+          POSTGRES_DB: muse_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U muse -d muse_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://muse:muse_local_dev@127.0.0.1:55432/muse_test
     steps:
       - uses: actions/checkout@v7
         with:

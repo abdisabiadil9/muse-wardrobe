@@ -1,0 +1,271 @@
+{
+  "version": 1,
+  "processing_version": "atlas-transparent-quadrants-v2",
+  "demo": true,
+  "assets": [
+    {
+      "id": "oat",
+      "slot": "coat",
+      "garment_kind": "coat",
+      "url": "/assets/garments/oat.png",
+      "file": "public/assets/garments/oat.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 337923,
+      "sha256": "057c1bf8b291ff3dd9213da41c570ac35e5570928338024c42c74738ad5f19ca",
+      "source": {
+        "file": "public/images/products-cutout.png",
+        "sha256": "2a4509656caa9c32fd1dfa1e169cda7f62719372b888b01aefcf6bda36b78c59",
+        "crop_rect": {
+          "x": 0,
+          "y": 0,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "navy",
+      "slot": "coat",
+      "garment_kind": "coat",
+      "url": "/assets/garments/navy.png",
+      "file": "public/assets/garments/navy.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 268341,
+      "sha256": "ad82249f46382e87d17fe7fc855020bad9eb40483e114ed0c3f3ade9fe4680f3",
+      "source": {
+        "file": "public/images/products-cutout.png",
+        "sha256": "2a4509656caa9c32fd1dfa1e169cda7f62719372b888b01aefcf6bda36b78c59",
+        "crop_rect": {
+          "x": 627,
+          "y": 0,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "trouser",
+      "slot": "bottom",
+      "garment_kind": "trousers",
+      "url": "/assets/garments/trouser.png",
+      "file": "public/assets/garments/trouser.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 244698,
+      "sha256": "1b89b2b07690ea27906a0e12d009c5b5316963da4fe1624a63a65214c10c0e5f",
+      "source": {
+        "file": "public/images/products-cutout.png",
+        "sha256": "2a4509656caa9c32fd1dfa1e169cda7f62719372b888b01aefcf6bda36b78c59",
+        "crop_rect": {
+          "x": 0,
+          "y": 627,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "bag",
+      "slot": "bag",
+      "garment_kind": "bag",
+      "url": "/assets/garments/bag.png",
+      "file": "public/assets/garments/bag.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 156909,
+      "sha256": "ec471eecab6b83568ce1518592f8094bc241c08be7c8e9c570bdd119dae7ae5d",
+      "source": {
+        "file": "public/images/products-cutout.png",
+        "sha256": "2a4509656caa9c32fd1dfa1e169cda7f62719372b888b01aefcf6bda36b78c59",
+        "crop_rect": {
+          "x": 627,
+          "y": 627,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "tee",
+      "slot": "top",
+      "garment_kind": "knit",
+      "url": "/assets/garments/tee.png",
+      "file": "public/assets/garments/tee.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 415384,
+      "sha256": "26f987e7ad67fc84c2a604bffb6753fc836075bc0e23edb82e4a72e65171b11f",
+      "source": {
+        "file": "public/images/wardrobe-essentials-cutout.png",
+        "sha256": "1259ebd419c57c0f16997cf2b365817fb0cb0d6b5586aa4595aebce4be6d1602",
+        "crop_rect": {
+          "x": 0,
+          "y": 0,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "jeans",
+      "slot": "bottom",
+      "garment_kind": "trousers",
+      "url": "/assets/garments/jeans.png",
+      "file": "public/assets/garments/jeans.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 317823,
+      "sha256": "68b07a451ee40bdc1b678a3d79ca115b49e606a11effa5a7c7f7208a6ab4c1c6",
+      "source": {
+        "file": "public/images/wardrobe-essentials-cutout.png",
+        "sha256": "1259ebd419c57c0f16997cf2b365817fb0cb0d6b5586aa4595aebce4be6d1602",
+        "crop_rect": {
+          "x": 627,
+          "y": 0,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "shoe",
+      "slot": "shoes",
+      "garment_kind": "shoes",
+      "url": "/assets/garments/shoe.png",
+      "file": "public/assets/garments/shoe.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 227703,
+      "sha256": "955efe837909fa977c7d12054d616097ad91e41d103c786db5d5a8fc730c18ed",
+      "source": {
+        "file": "public/images/wardrobe-essentials-cutout.png",
+        "sha256": "1259ebd419c57c0f16997cf2b365817fb0cb0d6b5586aa4595aebce4be6d1602",
+        "crop_rect": {
+          "x": 0,
+          "y": 627,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "scarf",
+      "slot": "bag",
+      "garment_kind": "scarf",
+      "url": "/assets/garments/scarf.png",
+      "file": "public/assets/garments/scarf.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 442573,
+      "sha256": "1306e4f8e9166f8fe3ab3224c27286d99141c9bfaa7212fae0c370305303fae3",
+      "source": {
+        "file": "public/images/wardrobe-essentials-cutout.png",
+        "sha256": "1259ebd419c57c0f16997cf2b365817fb0cb0d6b5586aa4595aebce4be6d1602",
+        "crop_rect": {
+          "x": 627,
+          "y": 627,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "red-knit",
+      "slot": "top",
+      "garment_kind": "knit",
+      "url": "/assets/garments/red-knit.png",
+      "file": "public/assets/garments/red-knit.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 473667,
+      "sha256": "dd3ae13a426a7c18c6df73c416d2bef04ba4cbc16054e5a8c0e02bc7c8eecab6",
+      "source": {
+        "file": "public/images/statement-items.png",
+        "sha256": "6901feed880a7a35ff4c0b7e3de7bf1653f6c8b4fefe565caa67e409b7a6a9ae",
+        "crop_rect": {
+          "x": 0,
+          "y": 0,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "lilac-cardigan",
+      "slot": "coat",
+      "garment_kind": "cardigan",
+      "url": "/assets/garments/lilac-cardigan.png",
+      "file": "public/assets/garments/lilac-cardigan.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 460664,
+      "sha256": "8b6a2a78001b549a40a0092683071367e4182a1f4e70aebf351bb502d45451f1",
+      "source": {
+        "file": "public/images/statement-items.png",
+        "sha256": "6901feed880a7a35ff4c0b7e3de7bf1653f6c8b4fefe565caa67e409b7a6a9ae",
+        "crop_rect": {
+          "x": 627,
+          "y": 0,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "mint-pants",
+      "slot": "bottom",
+      "garment_kind": "trousers",
+      "url": "/assets/garments/mint-pants.png",
+      "file": "public/assets/garments/mint-pants.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 221656,
+      "sha256": "7e4f2cbcf271ebe9a805a6ad7e63b9981c324b58f5d34ee25013b73080fe7433",
+      "source": {
+        "file": "public/images/statement-items.png",
+        "sha256": "6901feed880a7a35ff4c0b7e3de7bf1653f6c8b4fefe565caa67e409b7a6a9ae",
+        "crop_rect": {
+          "x": 0,
+          "y": 627,
+          "width": 627,
+          "height": 627
+        }
+      }
+    },
+    {
+      "id": "black-boots",
+      "slot": "shoes",
+      "garment_kind": "shoes",
+      "url": "/assets/garments/black-boots.png",
+      "file": "public/assets/garments/black-boots.png",
+      "mime": "image/png",
+      "width": 627,
+      "height": 627,
+      "bytes": 305842,
+      "sha256": "4ce29c128bbc1d0e827744bdc2f177ef8506ee458aa6813c11e8e8d5146a71fa",
+      "source": {
+        "file": "public/images/statement-items.png",
+        "sha256": "6901feed880a7a35ff4c0b7e3de7bf1653f6c8b4fefe565caa67e409b7a6a9ae",
+        "crop_rect": {
+          "x": 627,
+          "y": 627,
+          "width": 627,
+          "height": 627
+        }
+      }
+    }
+  ]
+}
