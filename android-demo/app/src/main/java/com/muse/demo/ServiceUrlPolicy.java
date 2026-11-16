@@ -44,6 +44,18 @@ public final class ServiceUrlPolicy {
         }
     }
 
+    public static boolean isImageDataResource(String url) {
+        if (url == null || !url.regionMatches(true, 0, "data:", 0, 5)) return false;
+        int comma = url.indexOf(',');
+        if (comma < 0) return false;
+        String metadata = url.substring(5, comma).toLowerCase(Locale.ROOT);
+        int semicolon = metadata.indexOf(';');
+        String mime = semicolon < 0 ? metadata : metadata.substring(0, semicolon);
+        return mime.equals("image/png") || mime.equals("image/jpeg") || mime.equals("image/gif")
+                || mime.equals("image/webp") || mime.equals("image/avif") || mime.equals("image/bmp")
+                || mime.equals("image/svg+xml");
+    }
+
     private static WebUrl parseWebUrl(String input, boolean allowFragment) {
         if (input == null) throw new IllegalArgumentException("Missing URL");
         String value = input.trim();

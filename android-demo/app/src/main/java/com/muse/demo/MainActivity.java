@@ -5,7 +5,6 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
@@ -44,8 +43,8 @@ import java.util.Collections;
 
 public final class MainActivity extends Activity {
     private static final int PICK_IMAGE = 40;
-    private static final int BACKGROUND = 0xFFFAF9F6;
-    private static final int INK = 0xFF292B26;
+    private static final int BACKGROUND = 0xFFFFFFFF;
+    private static final int INK = 0xFF1C1C1E;
     private static final String PREFS = "muse_demo";
     private static final String SERVICE_URL = "service_url";
 
@@ -119,7 +118,7 @@ public final class MainActivity extends Activity {
         toolbar.addView(address, new LinearLayout.LayoutParams(dp(84), dp(48)));
         root.addView(toolbar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
         View divider = new View(this);
-        divider.setBackgroundColor(0xFFE1E3DC);
+        divider.setBackgroundColor(0xFFF2F2F7);
         root.addView(divider, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
         content = new FrameLayout(this);
         root.addView(content, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
@@ -236,7 +235,7 @@ public final class MainActivity extends Activity {
         input.setTextSize(16);
         input.setText(service == null ? "" : service.getUrl());
         input.setSelectAllOnFocus(true);
-        input.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        if (Build.VERSION.SDK_INT >= 26) input.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
         form.addView(input, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
         addSpace(form, 8);
         form.addView(text(R.string.address_rules, 14));
@@ -245,11 +244,12 @@ public final class MainActivity extends Activity {
         connect.setOnClickListener(view -> {
             try {
                 ServiceUrlPolicy next = ServiceUrlPolicy.parse(input.getText().toString());
+                if (service == null || !service.getOrigin().equals(next.getOrigin())) destroyWebView();
                 service = next;
                 preferences.edit().putString(SERVICE_URL, next.getUrl()).apply();
                 InputMethodManager keyboard = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
                 if (keyboard != null) keyboard.hideSoftInputFromWindow(input.getWindowToken(), 0);
-                // A different service must never inherit another server's navigation history.
+                // Different origins receive a fresh WebView; same-origin path edits clear old history.
                 if (webView != null) webView.clearHistory();
                 loadService();
             } catch (IllegalArgumentException invalid) {
@@ -329,6 +329,7 @@ public final class MainActivity extends Activity {
             ServiceUrlPolicy current = service;
             if (current != null && current.isSameOrigin(url)) return null;
             if (!request.isForMainFrame() && ServiceUrlPolicy.isSafeExternalHttps(url)) return null;
+            if (!request.isForMainFrame() && ServiceUrlPolicy.isImageDataResource(url)) return null;
             // Blocks file/content/intent URLs and public HTTP fetches without a native bridge.
             return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked",
                     Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
@@ -385,7 +386,7 @@ public final class MainActivity extends Activity {
                     callback.onReceiveValue(new Uri[]{chosen});
                     return;
                 }
-            } catch (SecurityException ignored) {
+            } catch (RuntimeException ignored) {
                 // Show an actionable message, never provider exception details.
             }
         }
@@ -418,15 +419,20 @@ public final class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33 && backCallback != null) {
             getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);
         }
-        if (webView != null) {
-            webView.stopLoading();
-            content.removeView(webView);
-            webView.setWebChromeClient(null);
-            webView.setWebViewClient(new WebViewClient());
-            webView.destroy();
-            webView = null;
-        }
+        destroyWebView();
         super.onDestroy();
+    }
+
+    private void destroyWebView() {
+        cancelFileChoice();
+        if (webView == null) return;
+        WebView previous = webView;
+        webView = null;
+        previous.stopLoading();
+        content.removeView(previous);
+        previous.setWebChromeClient(null);
+        previous.setWebViewClient(new WebViewClient());
+        previous.destroy();
     }
 
     @Override
@@ -466,7 +472,7 @@ public final class MainActivity extends Activity {
         Button button = new Button(this);
         button.setText(resource);
         button.setTextSize(14);
-        button.setTextColor(INK);
+        button.setTextColor(0xFF007AFF);
         button.setAllCaps(false);
         return button;
     }

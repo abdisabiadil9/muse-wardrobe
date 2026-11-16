@@ -28,6 +28,7 @@ HTTP 仅接受规范写法的 RFC1918 IPv4（`10.0.0.0/8`、`172.16.0.0/12`、`1
 - 页面导航限制为填写服务的相同 scheme、host 和有效端口。用户点击的其他安全 HTTPS 链接交给外部应用；非 HTTPS 外链、自动跨域跳转和 `file:` / `content:` / `javascript:` 顶层导航被阻止。
 - 仅 debug manifest 允许明文 HTTP；主 manifest 默认关闭。HTTPS 证书错误直接取消，不提供绕过按钮。混合内容关闭，跨源明文子请求被拦截。
 - WebView 开启 JavaScript、DOM storage 和第一方 cookie；不提供 JavaScript 原生桥，不允许文件访问、文件跨域访问或第三方 cookie。
+- 图片 `data:image/...` 可作为子资源显示（包括 SVG 纹理），不能作为顶层页面或服务地址。
 - 图片上传使用系统 `ACTION_OPEN_DOCUMENT`，一次选择一张 `image/*`，仅接受用户选择的 `content:` URI。允许 WebView 读取该选择，未申请照片库、存储或相机权限；改地址、销毁 Activity、取消选择时都会完成空回调。
 - 网络错误显示重试和改地址，不展示异常细节。Android 15 的系统栏及键盘通过 WindowInsets 预留四边空间。
 - 系统相机实时预览、原生后台任务、离线运行和独立服务器部署均不在该演示壳内。当前本地后端使用共享开发身份，只适合受信任的演示网络。

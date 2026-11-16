@@ -81,6 +81,17 @@ public final class ServiceUrlPolicyTest {
         assertFalse(ServiceUrlPolicy.isSafeExternalHttps(null));
     }
 
+    @Test
+    public void permitsImageDataResourcesWithoutPermittingDataNavigation() {
+        assertTrue(ServiceUrlPolicy.isImageDataResource("data:image/png;base64,iVBORw0KGgo="));
+        assertTrue(ServiceUrlPolicy.isImageDataResource("data:image/svg+xml,%3Csvg%3E%3C/svg%3E"));
+        assertFalse(ServiceUrlPolicy.isImageDataResource("data:text/html,<script>alert(1)</script>"));
+        assertFalse(ServiceUrlPolicy.isImageDataResource("data:image/png"));
+        assertFalse(ServiceUrlPolicy.isImageDataResource("content://media/1"));
+        assertFalse(ServiceUrlPolicy.parse("https://example.com").isSameOrigin("data:image/png;base64,a"));
+        rejects("data:image/png;base64,a");
+    }
+
     private static void rejects(String address) {
         assertThrows(address, IllegalArgumentException.class, () -> ServiceUrlPolicy.parse(address));
     }
