@@ -28,6 +28,7 @@ import {
 } from '../../packages/domain/index.mjs';
 import { PrivateMedia } from './media.mjs';
 import { PROMPT_VERSION } from '../../packages/seedream/index.mjs';
+import { publicAgentEvent } from '../../packages/qoder/public-events.mjs';
 
 const DEV_USER = '00000000-0000-4000-8000-000000000001';
 export async function createApp({ pool, media: providedMedia, ...config }) {
@@ -727,6 +728,72 @@ export async function createApp({ pool, media: providedMedia, ...config }) {
       task.result = { ...task.result, result_asset: media.public(asset) };
     }
     return task;
+  });
+  route('GET', '/tasks/:id/agent-events', async (req) => {
+    await owned(pool, 'tasks', req.params.id, req.user.id);
+    const limit = req.query.limit === undefined ? 100 : Number(req.query.limit);
+    const after = req.query.after;
+    if (
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 100 ||
+      (after !== undefined &&
+        (typeof after !== 'string' ||
+          !/^evt_[A-Za-z0-9_-]{1,196}$/.test(after)))
+    )
+      fail(400, 'invalid_cursor', '事件分页参数无效');
+    const session = await one(
+      pool,
+      'SELECT qoder_session_id FROM agent_sessions WHERE task_id=$1 AND owner_id=$2',
+      [req.params.id, req.user.id],
+    );
+    if (!session) {
+      if (after) fail(400, 'invalid_cursor', '事件游标无效');
+      return { data: [], next_cursor: null };
+    }
+    const sessionId = session.qoder_session_id;
+    const cursor = after
+      ? await one(
+          pool,
+          'SELECT event_id FROM agent_events WHERE session_id=$1 AND event_id=$2',
+          [sessionId, after],
+        )
+      : null;
+    if (after && !cursor) fail(400, 'invalid_cursor', '事件游标无效');
+    // Scan every stored event, including hidden ones, so polling always advances.
+    const rows = await all(
+      pool,
+      `SELECT payload,event_id FROM agent_events WHERE session_id=$1
+       ${cursor ? 'AND (received_at,event_id)>(SELECT received_at,event_id FROM agent_events WHERE session_id=$1 AND event_id=$3)' : ''}
+       ORDER BY received_at,event_id LIMIT $2`,
+      cursor ? [sessionId, limit, cursor.event_id] : [sessionId, limit],
+    );
+    const calls = rows
+      .map((row) => row.payload.custom_tool_use_id)
+      .filter((id) => typeof id === 'string');
+    const names = calls.length
+      ? await all(
+          pool,
+          'SELECT event_id,payload FROM agent_events WHERE session_id=$1 AND event_id=ANY($2::text[])',
+          [sessionId, calls],
+        )
+      : [];
+    const toolNames = new Map(
+      names
+        .filter((row) => row.payload.type === 'agent.custom_tool_use')
+        .map((row) => [row.event_id, row.payload.name]),
+    );
+    return {
+      data: rows
+        .map((row) =>
+          publicAgentEvent(
+            row.payload,
+            toolNames.get(row.payload.custom_tool_use_id),
+          ),
+        )
+        .filter(Boolean),
+      next_cursor: rows.at(-1)?.event_id ?? after ?? null,
+    };
   });
   route('POST', '/tasks/:id/cancel', async (req, reply) =>
     idempotent(

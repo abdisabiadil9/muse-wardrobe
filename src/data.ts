@@ -242,12 +242,12 @@ export const styles = [
   },
   {
     id: 'outdoor',
-    name: '冬日户外',
+    name: '周末漫步',
     en: 'Out in the open',
     sub: '让舒适成为一种风格。',
-    image: '/images/editorial.jpg',
+    image: '/images/denim.jpg',
     color: '#cbd3c1',
-    tags: ['实用层次', '自然色', '舒适轮廓'],
+    tags: ['休闲丹宁', '轻松配色', '舒适轮廓'],
     description:
       '以舒适和实用为起点，试着把自然色与休闲单品组合起来。适合想多走一段路的日子。',
   },

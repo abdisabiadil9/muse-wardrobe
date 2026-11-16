@@ -201,6 +201,166 @@ function validateTask(value) {
 }
 
 check(
+  'native agent event read-through preserves links, isolates owners and advances hidden-event cursors',
+  async () => {
+    const a = await user(),
+      b = await user();
+    const d = (await request(a, 'GET', '/outfit-drafts/daily')).json();
+    const task = await stylingTask(a, d);
+    await pool.query("UPDATE tasks SET status='cancelled' WHERE id=$1", [task]);
+    const path = `/tasks/${task}/agent-events`;
+    assert.deepEqual((await request(a, 'GET', path)).json(), {
+      data: [],
+      next_cursor: null,
+    });
+    assert.equal((await request(b, 'GET', path)).statusCode, 404);
+    assert.equal((await app.inject({ url: `/api/v1${path}` })).statusCode, 401);
+    await pool.query(
+      'INSERT INTO agent_sessions(task_id,owner_id,qoder_session_id,agent_version) VALUES($1,$2,$3,1)',
+      [task, a.id, 'sess_' + task],
+    );
+    const events = [
+      {
+        id: 'evt_01',
+        type: 'user.message',
+        content: [{ type: 'text', text: '周末怎么穿' }],
+      },
+      { id: 'evt_02', type: 'agent.thinking', text: 'hidden reasoning' },
+      {
+        id: 'evt_03',
+        type: 'agent.custom_tool_use',
+        name: 'read_wardrobe',
+        input: { category: 'top', api_key: 'private-key' },
+        credentials: 'private-auth',
+      },
+      {
+        id: 'evt_04',
+        type: 'user.custom_tool_result',
+        custom_tool_use_id: 'evt_03',
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              garments: [{ name: '衬衫', token: 'private-token' }],
+            }),
+          },
+        ],
+        is_error: false,
+      },
+      {
+        id: 'evt_05',
+        type: 'agent.tool_use',
+        name: 'Read',
+        input: { file_path: '/data/.qoder/awareness/preferences/profile.md' },
+      },
+      {
+        id: 'evt_06',
+        type: 'agent.tool_result',
+        tool_use_id: 'evt_05',
+        content: [{ type: 'text', text: 'private memory contents' }],
+        is_error: false,
+      },
+      {
+        id: 'evt_07',
+        type: 'agent.message',
+        content: [
+          { type: 'thinking', text: 'hidden block' },
+          { type: 'text', text: '建议穿衬衫' },
+        ],
+        raw_reasoning: 'private thoughts',
+      },
+      {
+        id: 'evt_08',
+        type: 'session.status_idle',
+        stop_reason: { type: 'end_turn', debug_token: 'private-debug' },
+      },
+      {
+        id: 'evt_09',
+        type: 'future.private_event',
+        credentials: 'private-key',
+      },
+    ];
+    for (const [i, event] of events.entries())
+      await pool.query(
+        "INSERT INTO agent_events(session_id,event_id,payload,received_at) VALUES($1,$2,$3,'2026-11-17T01:00:00Z'::timestamptz+($4*interval '1 microsecond'))",
+        ['sess_' + task, event.id, event, i],
+      );
+    const pages = [];
+    let cursor;
+    for (let i = 0; i < 3; i++) {
+      const response = await request(
+        a,
+        'GET',
+        path + '?limit=3' + (cursor ? `&after=${cursor}` : ''),
+      );
+      assert.equal(response.statusCode, 200, response.body);
+      pages.push(...response.json().data);
+      cursor = response.json().next_cursor;
+    }
+    assert.equal(cursor, 'evt_09');
+    assert.deepEqual(
+      pages.map((e) => e.id),
+      ['evt_01', 'evt_03', 'evt_04', 'evt_05', 'evt_06', 'evt_07', 'evt_08'],
+    );
+    assert.equal(pages[2].custom_tool_use_id, 'evt_03');
+    assert.equal(pages[4].tool_use_id, 'evt_05');
+    assert.equal(pages[4].content, undefined);
+    assert.deepEqual(pages[5].content, [{ type: 'text', text: '建议穿衬衫' }]);
+    assert.deepEqual(pages[6].stop_reason, { type: 'end_turn' });
+    assert.doesNotMatch(
+      JSON.stringify(pages),
+      /private-|hidden|raw_reasoning|api_key|file_path/,
+    );
+    assert.deepEqual(
+      (await request(a, 'GET', path + '?after=' + cursor)).json(),
+      { data: [], next_cursor: cursor },
+    );
+    assert.deepEqual(
+      (await request(a, 'GET', path + '?after=evt_02&limit=1'))
+        .json()
+        .data.map((e) => e.id),
+      ['evt_03'],
+    );
+    for (const query of [
+      '?after=evt_other_session',
+      '?after=not-an-event',
+      '?limit=0',
+      '?limit=101',
+      '?limit=1.5',
+      '?limit=abc',
+    ])
+      assert.equal(
+        (await request(a, 'GET', path + query)).statusCode,
+        400,
+        query,
+      );
+    // Cursor checks are scoped to the bound session, even when another event exists.
+    await pool.query(
+      'INSERT INTO agent_events(session_id,event_id,payload) VALUES($1,$2,$3)',
+      [
+        'sess_other',
+        'evt_foreign',
+        { id: 'evt_foreign', type: 'agent.message', content: [] },
+      ],
+    );
+    assert.equal(
+      (await request(a, 'GET', path + '?after=evt_foreign')).statusCode,
+      400,
+    );
+    assert.equal(
+      (
+        await one(
+          pool,
+          'SELECT count(*)::int AS n FROM provider_operations WHERE task_id=$1',
+          [task],
+        )
+      ).n,
+      0,
+    );
+  },
+);
+
+check(
   'private media, owner isolation, CSRF and revision conflicts use real PostgreSQL',
   async () => {
     const a = await user(),

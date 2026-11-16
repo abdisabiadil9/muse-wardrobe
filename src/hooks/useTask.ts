@@ -10,6 +10,7 @@ import {
 } from "../api/client";
 export type TaskContext = {
   scene: string;
+  sourceTaskId?: string;
   draftId: string;
   revision: number;
   personAssetId?: string;

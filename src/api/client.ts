@@ -82,6 +82,8 @@ export type ErrorDetail = {
 };
 export type Task = {
   id: string;
+  created_at?: string;
+  updated_at?: string;
   type: string;
   status: TaskStatus;
   stage: string | null;

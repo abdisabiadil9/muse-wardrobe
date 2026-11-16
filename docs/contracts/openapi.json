@@ -4482,6 +4482,189 @@
           }
         }
       }
+    },
+    "/tasks/{id}/agent-events": {
+      "get": {
+        "operationId": "getTaskAgentEvents",
+        "summary": "只读透传任务已持久化的 Qoder 原生公开事件",
+        "description": "仅读取本人任务绑定 Session 的本地 agent_events，不调用上游。按本地持久接收顺序升序；同时间以原生事件 ID 稳定排序。limit 限制扫描事件数（包含隐藏事件），不保证 data 长度。排除 thinking、未知类型、内部配置、原始 memory Read 内容、凭据字段及非文本内容块；保留原生 ID、类型和工具关联字段。每事件最多 64 KiB，超限时省略 content/input。next_cursor 为最后扫描事件 ID（包括隐藏事件）；无新增时保留 after，无 Session/历史时为 null。轮询传回 next_cursor；不能用 data 为空判断任务结束。这里只返回完整 buffered 事件，不返回 delta。最终文本必须结合原生 session.status_idle.stop_reason.type=end_turn，业务成功仍以 Task 状态为准。",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^evt_[A-Za-z0-9_-]{1,196}$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "原生事件；next_cursor 也可指向已隐藏事件",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "user.message",
+                              "agent.message",
+                              "agent.custom_tool_use",
+                              "user.custom_tool_result",
+                              "agent.tool_use",
+                              "agent.tool_result",
+                              "session.status_running",
+                              "session.status_idle",
+                              "session.status_terminated"
+                            ]
+                          },
+                          "processed_at": {
+                            "type": "string"
+                          },
+                          "session_id": {
+                            "type": "string"
+                          },
+                          "session_thread_id": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "const": "text"
+                                },
+                                "text": {
+                                  "type": "string",
+                                  "maxLength": 16384
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "text"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "input": {
+                            "type": "object"
+                          },
+                          "custom_tool_use_id": {
+                            "type": "string"
+                          },
+                          "tool_use_id": {
+                            "type": "string"
+                          },
+                          "is_error": {
+                            "type": "boolean"
+                          },
+                          "stop_reason": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string"
+                              },
+                              "event_ids": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "next_cursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "需要登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在或无权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

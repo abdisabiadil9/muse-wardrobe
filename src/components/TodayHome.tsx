@@ -38,6 +38,7 @@ type Props = {
   live?: boolean;
   onAI?: () => void;
   aiStatus?: string;
+  feed?: ReactNode;
 };
 const nativeStyles = stylex.create({
   scene: { width: '100%', minHeight: 38 },
@@ -293,6 +294,7 @@ export default function TodayHome(p: Props) {
           ))}
         </div>
       </section>
+      {p.feed}
       <button className="today-wardrobe-link" onClick={p.onCloset}>
         <span className="wardrobe-link-icon">
           <Shirt size={20} />

@@ -63,6 +63,8 @@ public/assets/garments/       独立单品体验素材与裁切清单
 
 新同学先读 [团队交接](docs/TEAM_HANDOFF.md)，再按负责模块进入源码。OpenAPI 是对外合同；旧 `src/integrations/contracts.ts` 仅保留历史参考。不要让多人同时修改前端全局状态。
 
+中央 AI 对话、原生事件展示、灵感/我的与搭配卡片链路见 [AI 对话与搭配内容流](docs/AI_CONVERSATION.md)。这部分保留现有 Agent 和 skill，仅增加受鉴权的原生事件读取接口。
+
 从功能分支提交 PR，说明接口、状态、异常处理和验证结果。GitHub Actions 不调用付费模型，也不会自动更新 Sites。真实配置、个人照片、带签名链接和运行日志不进入提交或分享包。
 
 第三方素材及组件许可见 [public/licenses](public/licenses/README.txt)。本仓库尚未额外授予自有代码与素材开源许可；公开开源前需确认授权。

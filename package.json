@@ -17,6 +17,7 @@
     "qoder:setup": "node scripts/qoder-setup.mjs",
     "memory": "node --env-file=.env apps/worker/memory-command.mjs",
     "test:db": "node scripts/test-db.mjs",
+    "test:ui": "node scripts/check-style-flow.mjs",
     "demo:seed": "node scripts/seed-demo.mjs",
     "phone:setup": "node scripts/phone-setup.mjs"
   },
@@ -33,6 +34,7 @@
     "pg": "8.23.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
     "sharp": "0.35.5"
   },
   "devDependencies": {

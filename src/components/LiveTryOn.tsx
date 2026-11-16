@@ -8,6 +8,7 @@ import {
   type Draft,
   type MediaAsset,
   type SlotName,
+  type Task,
 } from "../api/client";
 import { slotNames, type Garment } from "../data";
 import { useTask } from "../hooks/useTask";
@@ -32,10 +33,14 @@ type Props = {
   flush: () => Promise<Draft>;
   onBack: () => void;
   onSaveOutfit: () => Promise<void>;
+  sourceTaskId?: string;
+  onTaskChange?: (task: Task | null, sourceTaskId?: string) => void;
 };
 export default function LiveTryOn(p: Props) {
   const c = useTask(p.api, p.owner, `tryon:${p.draft.scene}`);
   const inputKeys = personInputKeys(p.owner);
+  const onTaskChangeRef = useRef(p.onTaskChange); onTaskChangeRef.current = p.onTaskChange;
+  useEffect(() => { onTaskChangeRef.current?.(c.task, c.context?.sourceTaskId); }, [c.task, c.context?.sourceTaskId]);
   const cacheKey = inputKeys.upload;
   const [selection, setSelection] = useState<PersonSelection>(() => {
     try {
@@ -201,6 +206,7 @@ export default function LiveTryOn(p: Props) {
         tryonRequest(draft, asset.id, mode, target),
         {
           scene: draft.scene,
+          sourceTaskId: p.sourceTaskId,
           draftId: draft.id,
           revision: draft.revision,
           personAssetId: asset.id,

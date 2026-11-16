@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@lenso/ui/button';
 import {
   ArrowLeft,
@@ -17,7 +17,15 @@ import WardrobePicker from './components/WardrobePicker';
 import ClosetGallery from './components/ClosetGallery';
 import StyleStudio, { type CanvasLayout } from './components/StyleStudio';
 import { MobileTabBar, WardrobeSheet } from './components/MobileChrome';
-import LiveStyling from './components/LiveStyling';
+import AIConversation from './components/AIConversation';
+import {
+  InspirationPage,
+  MyStylePage,
+  LookDetail,
+  LookGrid,
+  sameLook,
+  type LookCard,
+} from './components/StyleContent';
 import LiveTryOn from './components/LiveTryOn';
 import LiveGarmentImage from './components/LiveGarmentImage';
 import {
@@ -33,6 +41,7 @@ import {
   type Me,
   type OutfitProposal,
   type Scene,
+  type Task,
 } from './api/client';
 import {
   draftBody,
@@ -56,8 +65,10 @@ import {
 } from './data';
 import './live.css';
 
-type Page = 'today' | 'closet' | 'outfit' | 'tryon' | 'mine' | 'discover';
-type Sheet = 'picker' | 'styling' | 'add' | null;
+type Page =
+  'today' | 'closet' | 'outfit' | 'tryon' | 'mine' | 'discover' | 'ai' | 'look';
+type HistoryEntry = { task: Task; scene: Scene; sourceTaskId?: string };
+type Sheet = 'picker' | 'add' | null;
 type Saved = ReturnType<typeof toSaved>;
 type Props = {
   api: Api;
@@ -104,6 +115,8 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
         'tryon',
         'mine',
         'discover',
+        'ai',
+        'look',
       ].includes(value)
         ? (value as Page)
         : 'today';
@@ -112,6 +125,65 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
       const value = localRead<Scene>(`${prefix}:scene`, 'daily');
       return scenes.includes(value) ? value : 'daily';
     });
+  const [selectedLook, setSelectedLook] = useState<LookCard | null>(() =>
+    localRead(`${prefix}:selected-look`, null),
+  );
+  const selectedLookRef = useRef(selectedLook);
+  selectedLookRef.current = selectedLook;
+  const [detailOrigin, setDetailOrigin] = useState<Page>(() =>
+    localRead(`${prefix}:detail-origin`, 'today'),
+  );
+  const [detailBusy, setDetailBusy] = useState(false),
+    [detailError, setDetailError] = useState('');
+  const [initialPrompt, setInitialPrompt] = useState('');
+  const [inspirationFilter, setInspirationFilter] = useState('全部');
+  const [inspirationFavorites, setInspirationFavorites] = useState<string[]>(
+    () => localRead(`${prefix}:inspiration-favorites`, []),
+  );
+  const [lookFavorites, setLookFavorites] = useState<string[]>(() =>
+    localRead(`${prefix}:look-favorites`, []),
+  );
+  const [taskHistory, setTaskHistory] = useState<HistoryEntry[]>(() =>
+    localRead(`${prefix}:look-history`, []),
+  );
+  const [savedSnapshots, setSavedSnapshots] = useState<ApiOutfit[]>([]);
+  const [proposalSource, setProposalSource] = useState<{
+    taskId: string;
+    slots: Draft['slots'];
+  } | null>(null);
+  const unavailableTaskIds = useRef(new Set<string>());
+  const taskHistoryRef = useRef(taskHistory);
+  taskHistoryRef.current = taskHistory;
+  const sceneRef = useRef(scene);
+  sceneRef.current = scene;
+  const rememberTask = useCallback(
+    (task: Task | null, sourceTaskId?: string, target?: Scene) => {
+      if (!task) return;
+      setTaskHistory((previous) => {
+        const old = previous.find((h) => h.task.id === task.id);
+        const context = localRead<{
+          contexts?: Record<string, { scene: Scene }>;
+        }>(`${prefix}:conversation:v1`, {}).contexts?.[task.id];
+        const entry = {
+          task,
+          scene: context?.scene || old?.scene || target || sceneRef.current,
+          sourceTaskId: old?.sourceTaskId || sourceTaskId,
+        };
+        if (old && JSON.stringify(old) === JSON.stringify(entry))
+          return previous;
+        const next = [entry, ...previous.filter((h) => h.task.id !== task.id)]
+          .sort(
+            (a, b) =>
+              (Date.parse(b.task.created_at || '') || 0) -
+              (Date.parse(a.task.created_at || '') || 0),
+          )
+          .slice(0, 100);
+        localWrite(`${prefix}:look-history`, next);
+        return next;
+      });
+    },
+    [prefix],
+  );
   const [sheet, setSheet] = useState<Sheet>(null),
     [pickerSlot, setPickerSlot] = useState<Slot>('coat'),
     [pickerMode, setPickerMode] = useState<'single' | 'outfit'>('outfit');
@@ -228,6 +300,7 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
       cursor = response.next_cursor;
     } while (cursor);
     setSaved(all.map(toSaved));
+    setSavedSnapshots(all);
   };
   const initialize = async () => {
     setLoading(true);
@@ -277,6 +350,120 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    const controller = new AbortController();
+    let busy = false;
+    const forget = (id: string) => {
+      unavailableTaskIds.current.add(id);
+      setTaskHistory((previous) => {
+        const next = previous.filter((h) => h.task.id !== id);
+        localWrite(`${prefix}:look-history`, next);
+        return next;
+      });
+      if (selectedLookRef.current?.taskId === id) {
+        localWrite(`${prefix}:selected-look`, null);
+        setSelectedLook(null);
+        setPage((p) => (p === 'look' ? 'mine' : p));
+      }
+    };
+    const refresh = async (force = false) => {
+      if (
+        busy ||
+        controller.signal.aborted ||
+        document.visibilityState === 'hidden'
+      )
+        return;
+      busy = true;
+      const known = taskHistoryRef.current;
+      const ids = new Map<
+        string,
+        { scene: Scene; sourceTaskId?: string; type?: string }
+      >();
+      for (const h of known) {
+        const handled =
+          (page === 'ai' && h.task.type === 'styling') ||
+          (page === 'tryon' && h.task.type === 'tryon' && h.scene === scene);
+        if (
+          !unavailableTaskIds.current.has(h.task.id) &&
+          !handled &&
+          (force ||
+            ['queued', 'running', 'waiting_tools'].includes(h.task.status))
+        )
+          ids.set(h.task.id, {
+            scene: h.scene,
+            sourceTaskId: h.sourceTaskId,
+            type: h.task.type,
+          });
+      }
+      const conversation = localRead<{
+        ids?: string[];
+        contexts?: Record<string, { scene: Scene }>;
+      }>(`${prefix}:conversation:v1`, {});
+      if (page !== 'ai')
+        for (const id of conversation.ids || [])
+          if (
+            !unavailableTaskIds.current.has(id) &&
+            !known.some((h) => h.task.id === id)
+          )
+            ids.set(id, {
+              scene: conversation.contexts?.[id]?.scene || sceneRef.current,
+              type: 'styling',
+            });
+      for (const target of scenes)
+        for (const kind of ['styling', 'tryon']) {
+          if (
+            (page === 'ai' && kind === 'styling') ||
+            (page === 'tryon' && kind === 'tryon' && target === scene)
+          )
+            continue;
+          const old = localRead<{
+            taskId?: string;
+            context?: { sourceTaskId?: string };
+          }>(`${prefix}:task:${kind}:${target}`, {});
+          if (
+            old.taskId &&
+            !unavailableTaskIds.current.has(old.taskId) &&
+            !known.some((h) => h.task.id === old.taskId)
+          )
+            ids.set(old.taskId, {
+              scene: target,
+              sourceTaskId: old.context?.sourceTaskId,
+              type: kind,
+            });
+        }
+      await Promise.allSettled(
+        [...ids].map(async ([id, context]) => {
+          try {
+            const task = await api.get<Task>(
+              `/tasks/${encodeURIComponent(id)}`,
+              controller.signal,
+            );
+            if (!controller.signal.aborted)
+              rememberTask(task, context.sourceTaskId, context.scene);
+          } catch (e) {
+            if (
+              !controller.signal.aborted &&
+              e instanceof ApiError &&
+              [403, 404, 410].includes(e.status)
+            )
+              forget(id);
+          }
+        }),
+      );
+      busy = false;
+    };
+    void refresh(true);
+    const timer = setInterval(() => void refresh(), 4000);
+    const foreground = () => void refresh(true);
+    document.addEventListener('visibilitychange', foreground);
+    window.addEventListener('online', foreground);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', foreground);
+      window.removeEventListener('online', foreground);
+    };
+  }, [api, prefix, page, scene, rememberTask]);
   useEffect(() => {
     void initialize();
     return () => {
@@ -363,6 +550,7 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
   const edit = (update: (d: Draft) => Draft, target: Scene = scene) => {
     const current = draftsRef.current[target];
     if (!current) return;
+    setProposalSource(null);
     setDraft(update(current));
     clearTimeout(timers.current[target]);
     timers.current[target] = setTimeout(() => {
@@ -425,6 +613,7 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
       });
       servers.current[scene] = accepted;
       setDraft(accepted);
+      setProposalSource({ taskId: proposal.task_id, slots: proposal.slots });
       const next = { ...recommendations, [scene]: accepted };
       setRecommendations(next);
       localWrite(`${prefix}:recommendations`, next);
@@ -621,7 +810,12 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
     layout = Object.keys(d.canvas_layout).length
       ? (d.canvas_layout as CanvasLayout)
       : undefined;
-  const currentTab = page === 'outfit' || page === 'tryon' ? 'today' : page;
+  const currentTab =
+    page === 'look'
+      ? detailOrigin
+      : page === 'outfit' || page === 'tryon'
+        ? 'today'
+        : page;
   const dirty = servers.current[scene] && !isSame(d, servers.current[scene]!);
   const rec = recommendations[scene];
   const customized = !!rec && !isSame(d, rec);
@@ -637,7 +831,289 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
     void flush(scene).catch(() => {});
     setPage(next);
   };
+  const looks: LookCard[] = [
+    ...taskHistory.flatMap<LookCard>(
+      ({ task, scene: target, sourceTaskId }) => {
+        if (task.status !== 'succeeded' || !task.result) return [];
+        const result = task.result;
+        if (
+          result.kind === 'tryon_result' &&
+          ['deleting', 'deleted'].includes(result.result_asset.status)
+        )
+          return [];
+        if (result.kind === 'outfit_proposal') {
+          const preview = taskHistory.find(
+            (h) =>
+              h.task.status === 'succeeded' &&
+              h.task.result?.kind === 'tryon_result' &&
+              h.task.result.mode === 'outfit' &&
+              sameLook(h.task.result.slots, result.slots),
+          );
+          const image =
+            preview?.task.result?.kind === 'tryon_result'
+              ? preview.task.result.result_asset
+              : undefined;
+          return [
+            {
+              id: task.id,
+              taskId: task.id,
+              title: `${sceneLabels[target]}的新想法`,
+              scene: target,
+              slots: result.slots,
+              reason: result.reason,
+              kind: 'proposal' as const,
+              image,
+              createdAt: task.created_at,
+            },
+          ];
+        }
+        return [
+          {
+            id: task.id,
+            taskId: task.id,
+            sourceTaskId,
+            title: `${sceneLabels[target]} · ${result.mode === 'single' ? '单件' : '整套'}预览`,
+            scene: target,
+            slots: result.slots,
+            reason:
+              result.mode === 'single'
+                ? '只替换生成时所选的单件；其他穿着来自人物原图。'
+                : '由人物原图和这套衣物生成的 AI 外观预览。',
+            kind: 'generated' as const,
+            image: result.result_asset,
+            createdAt: task.created_at,
+          },
+        ];
+      },
+    ),
+    ...savedSnapshots.map((o) => ({
+      id: o.id,
+      title: `${sceneLabels[o.snapshot.scene]} · 我的搭配`,
+      scene: o.snapshot.scene,
+      slots: o.snapshot.slots,
+      layout: o.snapshot.canvas_layout,
+      reason: '你保存下来的衣橱组合，随时可以再穿。',
+      kind: 'saved' as const,
+      createdAt: o.created_at,
+    })),
+  ];
+  const openLook = (look: LookCard) => {
+    look = looks.find((l) => l.id === look.id) || look;
+    const origin = page === 'look' ? detailOrigin : page;
+    setDetailOrigin(origin);
+    localWrite(`${prefix}:detail-origin`, origin);
+    localWrite(`${prefix}:selected-look`, look);
+    setSelectedLook(look);
+    setDetailError('');
+    navigate('look');
+  };
+  const applyLook = async (look: LookCard) => {
+    const target = look.scene;
+    const current = await flush(target);
+    const valid = validateProposal(
+      {
+        kind: 'outfit_proposal',
+        task_id: look.taskId || look.id,
+        proposal_id: look.id,
+        draft_revision: current.revision,
+        garment_ids: [],
+        slots: look.slots,
+        reason: look.reason,
+        owned_count: 0,
+        new_cost_fen: 0,
+      },
+      current,
+      rawItems,
+    );
+    const accepted =
+      sameLook(current.slots, valid) &&
+      (!look.layout ||
+        JSON.stringify(look.layout) === JSON.stringify(current.canvas_layout))
+        ? current
+        : await api.patch<Draft>(`/outfit-drafts/${target}`, {
+            expected_revision: current.revision,
+            slots: Object.fromEntries(
+              Object.entries(valid).map(([slot, ref]) => [
+                slot,
+                {
+                  ...ref,
+                  locked: current.slots[slot as Slot]?.locked || false,
+                },
+              ]),
+            ),
+            canvas_layout: look.layout ?? current.canvas_layout,
+          });
+    servers.current[target] = accepted;
+    setDraft(accepted);
+    setScene(target);
+    setProposalSource(
+      look.kind === 'proposal' && look.taskId
+        ? { taskId: look.taskId, slots: look.slots }
+        : look.sourceTaskId
+          ? { taskId: look.sourceTaskId, slots: look.slots }
+          : null,
+    );
+    return accepted;
+  };
+  const detailAction = async (action: 'adopt' | 'adjust' | 'tryon') => {
+    if (!selectedLook) return;
+    setDetailBusy(true);
+    setDetailError('');
+    try {
+      const accepted = await applyLook(selectedLook);
+      if (action === 'adopt') {
+        await api.post<ApiOutfit>(
+          '/outfits',
+          { draft_id: accepted.id, draft_revision: accepted.revision },
+          `look-${me.id}-${selectedLook.id}-${accepted.revision}`,
+        );
+        await loadSaved();
+        notify('已用这套，并保存到我的搭配');
+        navigate('today');
+      } else navigate(action === 'adjust' ? 'outfit' : 'tryon');
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        const target = selectedLook.scene;
+        servers.current[target] = await api.get<Draft>(
+          `/outfit-drafts/${target}`,
+        );
+        conflictRef.current = target;
+        setConflict(target);
+        setScene(target);
+        setSyncError(
+          '云端版本已变化。当前调整和这份搭配都已保留，请先处理版本冲突。',
+        );
+      }
+      setDetailError(errorMessage(e));
+    } finally {
+      setDetailBusy(false);
+    }
+  };
   const render = () => {
+    if (page === 'ai') {
+      const proposalPreviews = Object.fromEntries(
+        taskHistory.flatMap(({ task }) => {
+          if (task.result?.kind !== 'outfit_proposal') return [];
+          const proposal = task.result;
+          const preview = taskHistory.find(
+            (h) =>
+              h.task.status === 'succeeded' &&
+              h.task.result?.kind === 'tryon_result' &&
+              h.task.result.mode === 'outfit' &&
+              sameLook(h.task.result.slots, proposal.slots),
+          );
+          const result = preview?.task.result;
+          return result?.kind === 'tryon_result'
+            ? [
+                [
+                  task.id,
+                  {
+                    asset: result.result_asset,
+                    mode: result.mode,
+                    taskId: preview!.task.id,
+                  },
+                ],
+              ]
+            : [];
+        }),
+      );
+      return (
+        <AIConversation
+          proposalPreviews={proposalPreviews}
+          api={api}
+          owner={me.id}
+          draft={d}
+          items={items}
+          enabled={capabilities.ai_styling}
+          flush={() => flush(scene)}
+          onApply={applyProposal}
+          renderItem={renderItem}
+          initialPrompt={initialPrompt}
+          onPromptConsumed={() => setInitialPrompt('')}
+          onTaskChange={rememberTask}
+          onOpenProposal={(task) => {
+            rememberTask(task);
+            const result = task.result;
+            const target =
+              localRead<{ contexts?: Record<string, { scene: Scene }> }>(
+                `${prefix}:conversation:v1`,
+                {},
+              ).contexts?.[task.id]?.scene ||
+              taskHistory.find((h) => h.task.id === task.id)?.scene ||
+              scene;
+            if (result?.kind === 'outfit_proposal')
+              openLook({
+                id: task.id,
+                taskId: task.id,
+                title: `${sceneLabels[target]}的新想法`,
+                scene: target,
+                slots: result.slots,
+                reason: result.reason,
+                kind: 'proposal',
+              });
+          }}
+        />
+      );
+    }
+    if (page === 'look' && selectedLook) {
+      const liveTask = taskHistory.find(
+        (h) => h.task.id === selectedLook.taskId,
+      )?.task;
+      if (
+        liveTask?.result?.kind === 'tryon_result' &&
+        ['deleting', 'deleted'].includes(liveTask.result.result_asset.status)
+      )
+        return (
+          <div className="content-page">
+            <p className="content-note">这张上身图已不可用。</p>
+            <button
+              className="content-secondary"
+              onClick={() => navigate(detailOrigin)}
+            >
+              返回
+            </button>
+          </div>
+        );
+      const look = looks.find((l) => l.id === selectedLook.id) || selectedLook;
+      const source = looks.find((l) => l.id === look.sourceTaskId);
+      return (
+        <LookDetail
+          look={look}
+          items={items}
+          renderItem={renderItem}
+          favorite={lookFavorites.includes(look.id)}
+          onFavorite={() => {
+            const next = lookFavorites.includes(look.id)
+              ? lookFavorites.filter((id) => id !== look.id)
+              : [...lookFavorites, look.id];
+            setLookFavorites(next);
+            localWrite(`${prefix}:look-favorites`, next);
+          }}
+          onBack={() => navigate(detailOrigin)}
+          current={sameLook(drafts[look.scene]?.slots || {}, look.slots)}
+          busy={detailBusy}
+          error={detailError}
+          onAdopt={() => void detailAction('adopt')}
+          onAdjust={() => void detailAction('adjust')}
+          onTryOn={() => void detailAction('tryon')}
+          onSource={source ? () => openLook(source) : undefined}
+          onRetain={
+            look.image
+              ? () => {
+                  setDetailBusy(true);
+                  setDetailError('');
+                  void api
+                    .post<MediaAsset>(`/media/${look.image!.id}/retain`)
+                    .then(() => notify('上身图已保存'))
+                    .catch((e) => setDetailError(errorMessage(e)))
+                    .finally(() => setDetailBusy(false));
+                }
+              : undefined
+          }
+        />
+      );
+    }
+
     if (page === 'today')
       return (
         <TodayHome
@@ -650,15 +1126,40 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
           renderItem={renderItem}
           onPick={pick}
           onEdit={() => navigate('outfit')}
-          onSave={() => navigate('closet')}
+          onSave={() => navigate('mine')}
           onConfirm={() => void confirm()}
           onTryOn={() => navigate('tryon')}
           onCloset={() => navigate('closet')}
           onScene={changeScene}
           customized={customized}
           onRestoreScene={restore}
-          onInspiration={() => navigate('discover')}
-          onAI={() => setSheet('styling')}
+          onInspiration={() => {
+            setInspirationFilter('全部');
+            navigate('discover');
+          }}
+          onAI={() => navigate('ai')}
+          feed={
+            <section className="home-look-feed">
+              <header>
+                <h2>为你留住的新想法</h2>
+                <button onClick={() => navigate('ai')}>
+                  继续聊聊 <ArrowRight size={13} />
+                </button>
+              </header>
+              {looks.filter((l) => l.kind === 'proposal').length ? (
+                <LookGrid
+                  looks={looks.filter((l) => l.kind === 'proposal').slice(0, 6)}
+                  items={items}
+                  renderItem={renderItem}
+                  onOpen={openLook}
+                />
+              ) : (
+                <p>
+                  和 AI 聊聊今天的安排。每一套建议都会留在这里，喜欢再用到今天。
+                </p>
+              )}
+            </section>
+          }
           aiStatus={
             capabilities.ai_styling
               ? '由你决定是否采纳 · 不自动改衣'
@@ -689,17 +1190,8 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
               pick();
               return;
             }
-            const target = sceneKey(look.scene);
-            edit(
-              (d) => ({
-                ...d,
-                slots: draftSlots(look.outfit, rawItems, d.slots),
-                canvas_layout: look.canvasLayout || {},
-              }),
-              target,
-            );
-            setScene(target);
-            navigate('today');
+            const selected = looks.find((l) => l.id === look.id);
+            if (selected) openLook(selected);
           }}
           onFavorite={toggleFavorite}
         />
@@ -756,7 +1248,7 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
             }
           }}
           onTryOn={() => navigate('tryon')}
-          onBrowse={() => setSheet('styling')}
+          onBrowse={() => navigate('ai')}
           onSaved={() => navigate('closet')}
         />
       );
@@ -772,58 +1264,56 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
           flush={() => flush(scene)}
           onBack={() => navigate('today')}
           onSaveOutfit={saveOutfit}
+          sourceTaskId={
+            proposalSource && sameLook(proposalSource.slots, d.slots)
+              ? proposalSource.taskId
+              : undefined
+          }
+          onTaskChange={(task, source) => rememberTask(task, source, scene)}
         />
       );
     if (page === 'discover')
       return (
-        <div className="live-page">
-          <h1>寻找一点灵感</h1>
-          <p className="lead">先从自己的衣橱出发。</p>
-          <div className="live-account-card">
-            <Sparkles size={24} />
-            <h2>给已有衣服换个搭法</h2>
-            <p className="live-muted">
-              AI 建议只使用你确认加入的衣物，喜欢后再应用到今日搭配。
-            </p>
-            <Button
-              variant="prominent"
-              onClick={() => {
-                setPage('today');
-                setTimeout(() => setSheet('styling'), 0);
-              }}
-            >
-              试试 AI 搭配
-            </Button>
-          </div>
-          <div className="live-account-card">
-            <h2>浏览风格演示</h2>
-            <p className="live-muted">
-              编辑灵感、商品、价格与购买建议仍是演示内容，不读取或改动你的云端衣橱。
-            </p>
-            <Button variant="bordered" onClick={onDemo}>
-              打开演示内容
-            </Button>
-          </div>
-        </div>
+        <InspirationPage
+          key={inspirationFilter}
+          initialFilter={inspirationFilter}
+          favorites={inspirationFavorites}
+          onFavorite={(id) => {
+            const next = inspirationFavorites.includes(id)
+              ? inspirationFavorites.filter((x) => x !== id)
+              : [...inspirationFavorites, id];
+            setInspirationFavorites(next);
+            localWrite(`${prefix}:inspiration-favorites`, next);
+          }}
+          onUse={(text) => {
+            setInitialPrompt(text);
+            navigate('ai');
+          }}
+        />
       );
     return (
-      <div className="live-page">
-        <h1>我的风格日记</h1>
-        <p className="lead">{me.display_name}</p>
-        <div className="live-account-card">
-          <h2>自己的衣服，随时再搭</h2>
-          <p>
-            {items.length} 件衣物 · {saved.length} 套搭配
-          </p>
-          <Button variant="bordered" onClick={() => navigate('closet')}>
-            查看我的衣橱
-          </Button>
-        </div>
-        <div className="live-account-card">
-          <h2>同步本机衣物</h2>
+      <MyStylePage
+        name={me.display_name}
+        items={items}
+        looks={looks}
+        lookFavorites={lookFavorites}
+        inspirationFavorites={inspirationFavorites}
+        renderItem={renderItem}
+        onOpen={openLook}
+        onCloset={() => navigate('closet')}
+        onInspiration={() => {
+          setInspirationFilter('已收藏');
+          navigate('discover');
+        }}
+      >
+        <details className="live-account-card">
+          <summary>账户与本机记录</summary>
           <p className="live-muted">
-            找到 {localUploads.length}{' '}
-            件你在演示中添加的衣物。点击后上传到当前账号；原记录与本机备份保留，已有演示搭配不会被覆盖。
+            搭配与衣橱保存在当前账号。AI
+            历史索引与收藏保存在此浏览器，换设备不会自动同步。
+          </p>
+          <p className="live-muted">
+            本机有 {localUploads.length} 件你在演示中添加的衣物。
           </p>
           <Button
             variant="bordered"
@@ -833,23 +1323,19 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
             {importBusy ? '正在同步…' : '同步我添加的衣物'}
           </Button>
           {importMessage && (
-            <p className="live-muted" role="status">
+            <p role="status" className="live-muted">
               {importMessage}
             </p>
           )}
-        </div>
-        <div className="live-account-card">
-          <h2>服务状态</h2>
           <p className="live-muted">
-            AI 搭配：{capabilities.ai_styling ? '已接入' : '尚未配置'}
-            <br />
+            AI 搭配：{capabilities.ai_styling ? '已接入' : '尚未配置'} ·
             图片试穿：{capabilities.image_tryon ? '已接入' : '尚未配置'}
           </p>
           <Button variant="bordered" onClick={onDemo}>
             查看交互演示
           </Button>
-        </div>
-      </div>
+        </details>
+      </MyStylePage>
     );
   };
   return (
@@ -950,7 +1436,11 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
             )}
             {render()}
           </div>
-          <MobileTabBar current={currentTab} onNavigate={(p) => navigate(p)} />
+          <MobileTabBar
+            current={currentTab}
+            onNavigate={(p) => navigate(p)}
+            onAI={() => navigate('ai')}
+          />
           {toast && (
             <div className="toast" role="status">
               <CheckCheck size={17} />
@@ -960,13 +1450,11 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
           <WardrobeSheet
             open={!!sheet}
             title={
-              sheet === 'styling'
-                ? 'AI 帮我搭'
-                : sheet === 'add'
-                  ? '添加自己的衣物'
-                  : pickerMode === 'single'
-                    ? '换件衣服'
-                    : '从衣橱选衣'
+              sheet === 'add'
+                ? '添加自己的衣物'
+                : pickerMode === 'single'
+                  ? '换件衣服'
+                  : '从衣橱选衣'
             }
             onClose={() => setSheet(null)}
           >
@@ -987,19 +1475,6 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
                   }
                 }}
                 onAdd={() => setSheet('add')}
-              />
-            )}
-            {sheet === 'styling' && (
-              <LiveStyling
-                key={scene}
-                api={api}
-                owner={me.id}
-                draft={d}
-                items={items}
-                enabled={capabilities.ai_styling}
-                flush={() => flush(scene)}
-                onApply={applyProposal}
-                renderItem={renderItem}
               />
             )}
             {sheet === 'add' && (
