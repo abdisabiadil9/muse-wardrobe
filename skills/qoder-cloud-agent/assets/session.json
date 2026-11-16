@@ -1,0 +1,23 @@
+{
+  "agent": {
+    "type": "agent",
+    "id": "agent_REPLACE",
+    "version": 1
+  },
+  "environment_id": "env_REPLACE",
+  "title": "MUSE dev task",
+  "metadata": {
+    "muse_task_id": "REPLACE_WITH_APP_TASK_ID"
+  },
+  "budget": {
+    "type": "limit",
+    "max_credit_cost": "1.00"
+  },
+  "resources": [
+    {
+      "type": "memory_store",
+      "memory_store_id": "memstore_REPLACE",
+      "access": "read_only"
+    }
+  ]
+}

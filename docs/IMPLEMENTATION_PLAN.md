@@ -1,5 +1,7 @@
 # MUSE：手机使用与 Qoder Cloud Agent 实施方案
 
+> 历史方案：本文件已由 [SPEC v1.0](SPEC.md) 取代。首发试穿改为 Seedream 参考图图片生成，Decart 实时视频为后续能力；接口、任务和交接以 SPEC / OpenAPI 为准。
+
 更新：2026-11-16。本文区分已实现原型、已验证协议参考和待建设生产服务。决策依据是现有 React 项目、手机端衣橱/搭配/推荐/试穿流程，以及 Qoder 原生 Memory + Dream；不用 OpenViking。
 
 ## 1. 第一版选什么技术

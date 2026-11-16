@@ -1,0 +1,15 @@
+{
+  "inputs": [
+    {
+      "type": "memory_store",
+      "memory_store_id": "memstore_REPLACE"
+    },
+    {
+      "type": "sessions",
+      "session_ids": [
+        "sess_REPLACE_WITH_SAME_USER_SESSION"
+      ]
+    }
+  ],
+  "instructions": "仅整理已确认偏好和真实穿着反馈，保留来源与时间。"
+}

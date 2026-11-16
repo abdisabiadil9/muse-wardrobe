@@ -34,6 +34,19 @@ test('Stream is established before user.message; tool results use call event ID'
   assert.equal(JSON.parse(calls[2].body).events[0].custom_tool_use_id, 'evt_call');
 });
 
+test('Styling works before Memory rollout and cancellation reaches the cloud endpoint', async () => {
+  const calls = [];
+  const client = new QoderClient({ accessToken: 'fake-for-test', fetchImpl: async (url, init) => {
+    calls.push({ url, ...init });
+    return json({ id: 'sess_test' });
+  } });
+  await client.createSession({ agentId: 'agent_test', agentVersion: 1, environmentId: 'env_test', taskId: 'task_1', maxCreditCost: '1.00' });
+  assert.equal('resources' in JSON.parse(calls[0].body), false);
+  await client.cancelSession('sess_test');
+  assert.equal(calls[1].method, 'POST');
+  assert.equal(calls[1].url, 'https://api.qoder.com.cn/api/v1/cloud/sessions/sess_test/cancel');
+});
+
 test('Response loss after a write remains unconfirmed and is never auto-retried', async () => {
   let attempts = 0;
   const client = new QoderClient({ accessToken: 'fake-for-test', fetchImpl: async () => { attempts++; throw new Error('connection lost'); } });
@@ -57,6 +70,12 @@ test('Truncated SSE does not become a final result', async () => {
   assert.equal(taskState({ type: 'session.thread_status_idle', stop_reason: { type: 'end_turn' } }), null);
   assert.equal(taskState({ type: 'session.status_idle', stop_reason: { type: 'requires_action' } }), 'waiting_for_tools');
   assert.equal(taskState({ type: 'session.status_idle', stop_reason: { type: 'unknown' } }), 'unknown');
+});
+
+test('Leading heartbeat cannot hide a truncated SSE event at EOF', async () => {
+  const body = new Response(': heartbeat\nid: evt_test\ndata: {"type":"session.status_idle"}').body;
+  await assert.rejects(async () => { for await (const ignored of decodeSSE(body)) assert.fail(String(ignored)); }, /truncated_sse_frame/);
+  for await (const ignored of decodeSSE(new Response(': heartbeat\n: another heartbeat').body)) assert.fail(String(ignored));
 });
 
 test('Tools use trusted task owner; model cannot select another user or arbitrary tool', async () => {

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qoder Cloud Agent 接入"
+  short_description: "实现 Qoder Managed API、工具循环、事件恢复和原生记忆接入"
+  default_prompt: "使用 $qoder-cloud-agent 为这个应用实现可测试的 Qoder Cloud Agent 接入，先核对协议并完成离线验证。"

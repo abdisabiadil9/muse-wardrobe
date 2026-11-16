@@ -4,7 +4,7 @@
 
 ## 文件与运行
 
-- `qoder-client.mjs`：固定中国站 origin 的 HTTP adapter；Session、消息、SSE、工具结果、Memory、Dream。
+- `qoder-client.mjs`：重导出 `skills/qoder-cloud-agent/scripts/qoder-client.mjs`，交接时保留两个目录；固定中国站 origin 的 HTTP adapter；Session、消息、SSE、工具结果、Memory、Dream。
 - `muse-tools.mjs`：Agent 声明、两项最小业务工具、待执行工具识别和任务状态映射。
 - `protocol.test.mjs`：使用注入的假 HTTP 传输验证协议，不调用云端。
 
@@ -49,7 +49,7 @@ await qoder.sendMessage(session.id, '按本次任务的已确认场合和衣橱�
 2. 收到 `agent.custom_tool_use` 先缓存调用。等最新 `session.status_idle.stop_reason.type === 'requires_action'` 后，按 `event_ids` 找到待处理调用。
 3. 在数据库领取 `(session_id, event_id)`，防止多个 worker 重复执行。调用 `executeReadOnlyTool`，传入后端认证得到的 owner 和受 owner 限制的 repository。
 4. 保存工具结果，再调用 `sendToolResult`；失败先查历史，不重新执行业务动作。工具校验失败回传 `is_error: true` 和稳定的错误码，不回传内部堆栈。
-5. `propose_outfit` 的有效结果单独存为候选。只有当前 turn 正常结束、候选校验通过且用户未取消时，任务才标记成功。`end_turn` 也可能来自取消，不能仅靠它判断业务成功。
+5. `propose_outfit` 返回内部 `outfit_candidate`，不能直接当公共 `OutfitProposal`。应用校验category/锁定/owner/revision，持久化并生成 proposal_id、补齐 draft_revision 后再发布；`taskState` 也只是内部协议信号，按SPEC映射公共状态。有效结果单独存为候选。只有当前 turn 正常结束、候选校验通过且用户未取消时，任务才标记成功。`end_turn` 也可能来自取消，不能仅靠它判断业务成功。
 6. 完整事件处理后才推进 checkpoint。重连使用 `Last-Event-ID`；第一次启动/进程重启/检测到缺口时分页补历史并与实时事件按 ID 合并。
 
 ## 参考实现的边界

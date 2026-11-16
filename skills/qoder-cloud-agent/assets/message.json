@@ -1,0 +1,13 @@
+{
+  "events": [
+    {
+      "type": "user.message",
+      "content": [
+        {
+          "type": "text",
+          "text": "请用我的衣橱为周末搭一套。"
+        }
+      ]
+    }
+  ]
+}

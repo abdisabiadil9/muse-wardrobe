@@ -1,0 +1,15 @@
+{
+  "events": [
+    {
+      "type": "user.custom_tool_result",
+      "custom_tool_use_id": "evt_REPLACE_WITH_CALL_EVENT_ID",
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"garments\":[]}"
+        }
+      ],
+      "is_error": false
+    }
+  ]
+}

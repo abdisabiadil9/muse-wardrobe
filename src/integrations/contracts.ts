@@ -1,3 +1,6 @@
+/** @deprecated Historical prototype ports. New development MUST use docs/contracts/openapi.json.
+ * Legacy routes/camelCase/CNY here are not the v1 wire contract. Only the disabled
+ * Decart reference imports this module; migrate it before enabling a real connection. */
 /** Application-owned contracts. Provider credentials never belong in these objects. */
 export type AssetOrigin = 'owned' | 'wishlist' | 'reference';
 export type OutfitSlot = 'outerwear' | 'top' | 'bottom' | 'shoes' | 'accessory';

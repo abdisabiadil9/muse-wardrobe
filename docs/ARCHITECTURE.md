@@ -1,5 +1,7 @@
 # MUSE 手机端原型与后续接入架构
 
+> 历史方案：本文件已由 [SPEC v1.0](SPEC.md) 取代。首发试穿改为 Seedream 参考图图片生成，Decart 实时视频为后续能力；接口、任务和交接以 SPEC / OpenAPI 为准。
+
 > 2026-11-16 更新：具体部署、手机使用、Qoder API 时序、Memory/Dream 和验收路线见 [可执行实现方案](IMPLEMENTATION_PLAN.md)。本文件保留总体结构，接口和阶段安排以新方案为准。当前采用 Lenso 移动 Web / PWA 基础，记忆只使用 Qoder 原生 Memory 与 Dream，不使用 OpenViking。
 
 本次交付是 React/TypeScript 手机 Web 原型。商品、价格、推荐和试衣画面均为演示数据；浏览器本地状态不等于云端账户。未创建 Qoder Agent、未调用商品服务或 Decart 付费模型，也没有真实下单。

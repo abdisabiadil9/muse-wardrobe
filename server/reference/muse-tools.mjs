@@ -42,7 +42,7 @@ export async function executeReadOnlyTool(call, context, repository) {
     const garments = await repository.getGarments(context.userId, ids);
     const found = new Set(garments.map(item => item.id));
     if (garments.length !== ids.length || ids.some(id => !found.has(id))) throw new TypeError('Garment unavailable for this user');
-    return { kind: 'outfit_proposal', task_id: context.taskId, garment_ids: ids, reason: args.reason, owned_count: ids.length, new_cost_fen: 0 };
+    return { kind: 'outfit_candidate', task_id: context.taskId, garment_ids: ids, reason: args.reason, owned_count: ids.length, new_cost_fen: 0 };
   }
   throw new TypeError('Tool is not in the application allowlist');
 }
