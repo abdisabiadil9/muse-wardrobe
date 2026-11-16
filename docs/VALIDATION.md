@@ -55,3 +55,10 @@ GitHub Actions 使用 PostgreSQL 和模拟供应商检查；最新运行结果�
 增加默认男、女 AI 模特，与自传照片的选择和缓存隔离。8 项新增测试后共76项通过，构建通过。手机尺寸浏览器已验证男模特选择、刷新保留、切换后授权重置，选择过程中没有试穿模型请求，页面无横向溢出。此次没有追加 Seedream 试穿计费调用；男士源图使用内置 imagegen 生成，来源与提示词见 public/assets/models/README.md。
 
 Android 演示 APK 的构建与使用说明位于 android-demo/README.md 和 MOBILE_ACCESS.md；真机安装、上传和热点可达性仍需在用户手机上验证。
+
+## 2026-11-17 Android APK 交付
+
+- 源码提交 `6d7198b56bedb9dc24a7fbc793885e4daff31777` 的 [Android 构建](https://github.com/mistake-12/muse-wardrobe/actions/runs/43933024927) 成功：`testDebugUnitTest`、`lintDebug`、`assembleDebug` 均通过，APK v2 签名校验通过。同提交的 Validate MUSE 检查也成功。
+- 产物 `muse-demo-debug.apk`，Android 7.0 及以上，包名 `com.muse.demo.debug`。下载后 SHA-256 复核通过：`ef29682eb47be28ec69194f30e8661310626abaf3ba5c9e9fc9c35599a698487`。
+- GitHub Actions 的 `muse-android-demo` artifact 保留 30 天，包含安装包和校验文件。本机下载目录 `~/Downloads/MUSE/` 也保留一份；开发服务另提供 `/downloads/muse-demo-debug.apk`，该二进制不纳入 Git。
+- 这是连接本地服务的原生 WebView 演示包，不内置业务后端或密钥。未进行实体安卓安装测试，未声称校园网或热点已经在用户手机上连通。
