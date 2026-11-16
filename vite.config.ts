@@ -1,3 +1,21 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-export default defineConfig({ plugins: [react()], server: { host: '0.0.0.0' } });
+import { unplugin as stylex } from '@stylexjs/unplugin';
+
+export default defineConfig({
+  optimizeDeps: {
+    exclude: ['@lenso/ui', '@lenso/tokens', '@lenso/glass'],
+    include: ['use-sync-external-store/shim', 'use-sync-external-store/shim/with-selector'],
+  },
+  plugins: [
+    stylex.vite({
+      dev: false,
+      runtimeInjection: false,
+      useCSSLayers: false,
+      lightningcssOptions: { exclude: 4 },
+      unstable_moduleResolution: { type: 'commonJS', rootDir: import.meta.dirname },
+    }),
+    react(),
+  ],
+  server: { host: '0.0.0.0' },
+});

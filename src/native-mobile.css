@@ -1,0 +1,181 @@
+/* Native-feeling content surfaces. Interactive chrome is supplied by Lenso UI. */
+:root {
+  --ink: #1c1c1e;
+  --muted: #8e8e93;
+  --accent: #007aff;
+  --accent-soft: #edf5ff;
+  --paper: #ffffff;
+  --line: #e9e9ed;
+  --olive: #1c1c1e;
+  --lime: #007aff;
+  --serif: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: var(--ink);
+  background: #f2f2f7;
+}
+html { color-scheme: light; }
+body { -webkit-font-smoothing: antialiased; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline-color: var(--accent); }
+.presentation { background: #f2f2f7; }
+.phone { border-color: #1c1c1e; background: #fff; box-shadow: 0 28px 70px #1c1c1e12; }
+.desktop-wordmark { font-family: Georgia, serif; letter-spacing: -3px; }
+.desktop-wordmark > span { color: #1c1c1e; }
+.desktop-label { font-size: 10px; letter-spacing: 1.8px; color: #8e8e93; }
+.demo-pane > h1 { font-size: 37px; font-weight: 650; letter-spacing: -1.6px; }
+.demo-pane > h1 em { color: #007aff; }
+.demo-pane > p, .demo-steps small { color: #8e8e93; }
+.demo-steps > button { border-color: #dedee3; }
+.demo-steps > button.active { border-color: #b6cce5; }
+.demo-steps > button.active b { color: #1c1c1e; }
+.demo-steps > button.active .demo-step-number { background: #007aff; color: #fff; }
+.demo-step-number { color: #8e8e93; }
+.device-caption, .desktop-reset { color: #8e8e93; }
+.caption-dot { background: #007aff; }
+.app-content { bottom: 0; padding-bottom: 106px; background: #fff; }
+.muse-tabbar-dock { position: absolute; bottom: 18px; left: 21px; right: 21px; z-index: 25; }
+.muse-tabbar-dock::before { content: ''; position: absolute; inset: -20px -21px -18px; pointer-events: none; z-index: -2; background: linear-gradient(transparent, #ffffffd9 70%); }
+.muse-tabbar-dock [data-tab-bar-content] { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; }
+.muse-tabbar-dock [data-tab-bar-item] { text-decoration: none; min-height: 54px; }
+.muse-tabbar-dock [data-tab-bar-item][data-current] { color: #007aff; }
+.muse-tabbar-dock [data-tab-bar-item] svg { width: 22px; height: 22px; }
+.toast { bottom: 92px; border-radius: 18px; font-size: 12px; padding: 13px 17px; background: #28282df5; }
+
+/* One clear destination: today's look. */
+.today-home { padding: 0 22px 112px; }
+.today-brand { height: 58px; }
+.today-wordmark { font: 29px/1 Georgia, serif; letter-spacing: -1.9px; }
+.today-wordmark > span { color: #1c1c1e; }
+.today-heading { padding: 5px 0 20px; align-items: end; }
+.today-heading p { margin-bottom: 7px; font-size: 12px; letter-spacing: 0; font-weight: 450; color: #8e8e93; }
+.today-heading h1 { font-size: 31px; line-height: 1.16; letter-spacing: -.9px; font-weight: 700; }
+.today-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #8e8e93; padding-bottom: 3px; }
+.today-occasions { margin: 0 0 18px; display: block; }
+.daily-look { border: 0; background: #f6f6f8; border-radius: 25px; }
+.daily-look-top { height: 43px; padding: 4px 16px 0 19px; font-size: 11px; color: #8e8e93; }
+.daily-look-top > button { width: 36px; height: 36px; min-height: 36px; border-radius: 50%; color: #636366; display: flex; justify-content: center; }
+.daily-look-top > button:hover { background: #ececf0; }
+.daily-collage { height: 285px; margin: 0 9px; }
+.daily-coat { width: 53%; top: 0; left: -1%; }
+.daily-top { width: 41%; top: 1%; right: 0; }
+.daily-bottom { width: 47%; top: 34%; right: 0; }
+.daily-bag { width: 32%; left: 21%; top: 43%; }
+.daily-shoes { width: 42%; bottom: 0; left: 0; }
+.piece-edit { width: 23px; height: 23px; right: 9%; bottom: 15%; background: #ffffffed; color: #636366; border: 0; box-shadow: 0 1px 5px #00000012; }
+.daily-look-caption { margin: 0 19px; padding: 12px 0 17px; border-color: #e8e8ed; }
+.daily-look-caption strong { font-size: 13px; color: #3a3a3c; font-weight: 550; margin-bottom: 5px; }
+.daily-look-caption div > span { font-size: 11px; color: #8e8e93; }
+.look-count { font: 25px/1.1 -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -1px; font-weight: 300; color: #8e8e93; }
+.look-count small { font: 9px/1.2 -apple-system, sans-serif; writing-mode: horizontal-tb; letter-spacing: 0; color: #8e8e93; }
+.today-actions { gap: 10px; margin-top: 17px; }
+.today-confirm { min-height: 48px; margin-bottom: 10px; }
+.today-confirm > span { font-size: 10px; color: #8e8e93; }
+.today-confirm > button { font-size: 12px; font-weight: 500; color: #007aff; min-height: 44px; }
+.today-confirm > button:disabled { color: #8e8e93; }
+.today-pieces-section { border-color: #e9e9ed; padding-top: 19px; margin-top: 0; }
+.today-section-heading { margin-bottom: 14px; }
+.today-section-heading h2 { font-size: 17px; font-weight: 650; color: #1c1c1e; }
+.today-section-heading > span { font-size: 11px; color: #8e8e93; }
+.today-pieces-strip { gap: 9px; }
+.today-pieces-strip > button > div { border: 0; border-radius: 13px; background: #f5f5f7; }
+.today-pieces-strip > button > div > span { color: #8e8e93; }
+.today-pieces-strip small { color: #636366; font-size: 11px; }
+.today-wardrobe-link { border-color: #e9e9ed; margin-top: 26px; padding: 19px 0; }
+.wardrobe-link-icon { color: #007aff; background: #edf5ff; border-radius: 13px; width: 42px; height: 42px; }
+.today-wardrobe-link b { color: #1c1c1e; font-size: 15px; font-weight: 600; }
+.today-wardrobe-link div > span { color: #8e8e93; font-size: 11px; }
+.today-wardrobe-link > svg { color: #c7c7cc; }
+.today-inspiration-link { font-size: 12px; padding: 23px 0 0; }
+.today-inspiration-link > span { color: #8e8e93; }
+.today-inspiration-link > b { color: #007aff; }
+
+/* Lenso owns the drawer gesture, top layer, focus and dismissal. */
+[data-muse-sheet='wardrobe'] { color: #1c1c1e; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; }
+[data-muse-sheet='wardrobe'] [data-lenso-slot='sheet-body'] { overflow-y: auto; overscroll-behavior: contain; }
+.picker-intro { margin-bottom: 17px; font-size: 13px; line-height: 1.6; color: #8e8e93; }
+.picker-categories { margin-bottom: 15px; }
+.picker-selection { gap: 9px; padding-bottom: 17px; border-bottom: 0; }
+.picker-selection > button > span { background: #f5f5f7; border-radius: 13px; }
+.picker-selection > button.active > span { background: #edf5ff; border-color: #007aff; }
+.picker-selection small { font-size: 11px; color: #8e8e93; }
+.picker-selection > button.active small { color: #007aff; }
+.picker-selection i { color: #636366; }
+.search-field, .picker-search { background: #f2f2f7; border: 0; color: #8e8e93; border-radius: 12px; height: 44px; min-height: 44px; }
+.picker-search { margin: 0 0 20px; }
+.search-field input { color: #1c1c1e; font-size: 16px; }
+.search-field input::placeholder { color: #8e8e93; }
+.picker-search > button { color: #007aff; font-size: 12px; min-height: 40px; padding: 0 4px; }
+.picker-section-title { margin: 0 0 12px; }
+.picker-section-title h3 { font-size: 17px; font-weight: 650; }
+.picker-section-title > span { font-size: 12px; color: #8e8e93; }
+.picker-grid { gap: 19px 13px; padding-bottom: 22px; }
+.picker-item-image { border-radius: 18px; background: #f6f6f8; border-width: 1.5px; padding: 4px; }
+.picker-item-image > i { color: #8e8e93; border: 0; width: 27px; height: 27px; }
+.picker-grid > button.selected .picker-item-image { border-color: #007aff; background: #f2f7fd; }
+.picker-grid > button.selected .picker-item-image > i { background: #007aff; }
+.picker-grid > button > span { color: #3a3a3c; font-size: 12px; margin-top: 9px; font-weight: 500; }
+.picker-grid > button > small { color: #8e8e93; font-size: 11px; }
+.picker-footer { padding: 14px 0 max(22px, env(safe-area-inset-bottom)); border-top: 1px solid #e9e9ed; background: #ffffffed; backdrop-filter: blur(16px); }
+.picker-single-note { padding: 2px 0 max(24px, env(safe-area-inset-bottom)); text-align: center; color: #8e8e93; font-size: 11px; }
+.picker-empty { color: #8e8e93; }
+
+/* The same palette and touch sizing through secondary destinations. */
+.page-header h1, .wardrobe-header h1 { font-size: 29px; font-weight: 700; letter-spacing: -.8px; }
+.wardrobe-choose-today { border: 0; background: #f2f2f7; border-radius: 14px; font-size: 13px; min-height: 48px; margin-top: 3px; margin-bottom: 15px; }
+.wardrobe-choose-today > svg:first-child { color: #007aff; }
+.wardrobe-header .wardrobe-plus { background: #007aff; }
+.wardrobe-item-picture, .look-collage { background: #f5f5f7; border-radius: 14px; }
+.wardrobe-item-grid > article > span, .wardrobe-item-grid > article > button { color: #3a3a3c; }
+.visual-categories > button.active > span { border-color: #007aff; }
+.visual-categories > button.active small { color: #007aff; }
+.button { min-height: 48px; font-size: 13px; border-radius: 999px; }
+.button.primary, .lime-save, .try-outfit, .photo-add-panel > button, .add-items-confirm { background: #007aff; color: white; }
+.button.secondary, .browse-outfit { background: #f2f2f7; border-color: #f2f2f7; color: #1c1c1e; }
+.icon-button.selected, .favorite.active, .add-source-tabs > button.active > svg { color: #007aff; }
+.icon-button.selected, .source-tag, .source-new, .studio-moodboard > button { background: #edf5ff; color: #007aff; }
+.source-tag.owned, .source-owned { background: #f2f2f7; color: #8e8e93; }
+.studio-filter button.active, .small-pieces .shuffle-control { background: #f2f2f7; color: #1c1c1e; }
+.source-tag, .product-meta, .product-name { font-size: 11px; }
+.pin-control.active, .is-pinned .clothes-row-label > span, .selected-item-dot { color: #007aff; }
+.selected-item-dot { background: #007aff; }
+.rec-context, .profile-card, .quote-panel, .stylist-note, .inline-notice { background: #f5f5f7; border-color: #e9e9ed; border-radius: 17px; }
+.rec-context > p, .stylist-note p, .stylist-note b, .match-explanation, .match-explanation > svg { color: #636366; }
+.profile-avatar, .discovery-shortcuts > button > span, .integration-symbol { background: #edf5ff; color: #007aff; }
+.personal-stats b, .detail-title > strong, .detail-facts b { color: #1c1c1e; }
+.personal-stats span, .profile-card p, .detail-attributes, .detail-facts > div > span, .subtle-note, .lead, .greeting { color: #8e8e93; }
+.settings-row { color: #636366; min-height: 58px; }
+.settings-row > span { font-size: 13px; }
+.bottom-sheet { border-radius: 28px 28px 0 0; background: #fff; }
+.sheet-backdrop { background: #00000030; backdrop-filter: none; }
+.bottom-sheet h2 { font-size: 20px; font-weight: 650; }
+.sheet-lead, .sheet-lead.small, .tryon-note { color: #8e8e93; font-size: 12px; }
+.text-input { background: #f2f2f7; color: #1c1c1e; border: 0; border-radius: 12px; font-size: 16px; }
+.form-label { color: #636366; font-size: 13px; }
+.rec-tabs > button.active { color: #007aff; border-color: #007aff; }
+.rec-tabs > button.active:after { background: #007aff; }
+.tryon-options > button.active { border-color: #007aff; background: #edf5ff; }
+.tryon-options > button > i { background: #007aff; }
+.feedback-options > button { background: #f2f2f7; border: 0; color: #1c1c1e; border-radius: 14px; }
+
+@media (max-width: 760px) {
+  html, body, #root, #root > [data-theme] { min-height: 100%; background: #fff; }
+  .app-content { bottom: 0; padding-bottom: calc(108px + env(safe-area-inset-bottom)); }
+  .muse-tabbar-dock { bottom: max(17px, env(safe-area-inset-bottom)); left: 24px; right: 24px; }
+  .muse-tabbar-dock::before { bottom: calc(-1 * max(17px, env(safe-area-inset-bottom))); }
+  .today-home { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 761px) { .daily-collage { height: 275px; } }
+@media (max-width: 374px) {
+  .today-home { padding-left: 18px; padding-right: 18px; }
+  .today-brand { height: 52px; }
+  .today-heading { padding-bottom: 17px; }
+  .today-heading h1 { font-size: 29px; }
+  .today-status { font-size: 10px; }
+  .today-occasions { margin-bottom: 14px; }
+  .daily-collage { height: 246px; }
+  .daily-look-caption strong { font-size: 12px; }
+  .daily-look-caption div > span { font-size: 10px; }
+  .today-actions { margin-top: 14px; gap: 9px; }
+  .muse-tabbar-dock { left: 21px; right: 21px; }
+}
+@media (prefers-reduced-motion: reduce) { .daily-piece { transition: none; } }

@@ -4,6 +4,7 @@ import { slotNames, type Garment, type Outfit, type Slot } from '../data';
 
 export type CanvasLayout = Record<Slot, { x: number; y: number; width: number; rotation: number }>;
 type Props = {
+  initialMode?: 'dress'|'canvas'|'boards'; onHome:()=>void;
   outfit: Outfit; items: Garment[]; locked: Slot[]; favorites: string[];
   renderItem: (item: Garment, className?: string) => ReactNode;
   onChange: (id: string, slot: Slot) => void;
@@ -71,7 +72,7 @@ function ClothesRail({ slot, choices, selected, locked, renderItem, onChange, on
 }
 
 export default function StyleStudio(p: Props) {
-  const [mode, setMode] = useState<'dress' | 'canvas' | 'boards'>('dress');
+  const [mode, setMode] = useState<'dress' | 'canvas' | 'boards'>(p.initialMode||'dress');
   const [source, setSource] = useState('全部单品');
   const [focusSlot, setFocusSlot] = useState<Slot>('coat');
   const [positions, setPositions] = useState(p.layout ?? initialPositions);
@@ -109,7 +110,7 @@ export default function StyleStudio(p: Props) {
     }
   };
   return <div className="styling-studio">
-    <header className="studio-header"><button className="studio-icon" aria-label="查看保存搭配" onClick={p.onSaved}><Bookmark size={21}/></button><div><h1>搭配</h1><span>玩出你的下一套</span></div><button className="lime-save" onClick={()=>p.onSave(positions)}>保存<Check size={15}/></button></header>
+    <header className="studio-header"><button className="studio-icon" aria-label="回到今日搭配" onClick={p.onHome}><ArrowLeft size={21}/></button><div><h1>调整搭配</h1><span>完成后回到今日搭配</span></div><button className="lime-save" onClick={()=>p.onSave(positions)}>完成<Check size={15}/></button></header>
     <div className="studio-tabs" role="tablist" aria-label="搭配方式">{([{ id: 'dress', label: '滑动搭配' }, { id: 'canvas', label: '自由画布' }, { id: 'boards', label: '灵感板' }] as const).map(x => <button key={x.id} role="tab" aria-selected={mode === x.id} className={mode === x.id ? 'active' : ''} onClick={() => setMode(x.id)}>{x.label}</button>)}</div>
     {mode === 'dress' && <>
       <div className="studio-filter"><SlidersHorizontal size={16}/><div>{['全部单品', '我的衣橱', '我的收藏'].map(x => <button className={source === x ? 'active' : ''} key={x} onClick={() => switchSource(x)}>{x}</button>)}</div></div>

@@ -1,5 +1,7 @@
 # MUSE 手机端原型与后续接入架构
 
+> 2026-11-16 更新：具体部署、手机使用、Qoder API 时序、Memory/Dream 和验收路线见 [可执行实现方案](IMPLEMENTATION_PLAN.md)。本文件保留总体结构，接口和阶段安排以新方案为准。当前采用 Lenso 移动 Web / PWA 基础，记忆只使用 Qoder 原生 Memory 与 Dream，不使用 OpenViking。
+
 本次交付是 React/TypeScript 手机 Web 原型。商品、价格、推荐和试衣画面均为演示数据；浏览器本地状态不等于云端账户。未创建 Qoder Agent、未调用商品服务或 Decart 付费模型，也没有真实下单。
 
 ## 从原型走向产品
@@ -39,7 +41,7 @@ flowchart TD
 1. 后端维护 `app user → memory_store_id`、`outfit draft → Qoder session_id` 映射。一个草稿的补充消息复用 Session，独立任务另建 Session。绑定 Agent 版本、Environment 和该用户的 Memory Store。
 2. `POST /api/v1/cloud/sessions` 创建；`POST /api/v1/cloud/sessions/{id}/events` 发送 user.message；从 `/events/stream` 消费 SSE，前端只接应用侧归一化进度和结果。
 3. 收到 `agent.custom_tool_use` 后，业务后端校验身份、工具名和参数，执行工具，再用调用事件 ID 作为 custom_tool_use_id 回传 `user.custom_tool_result`。平台不会替应用执行 Custom Tool。
-4. 工具建议：read_wardrobe、search_products、get_product_details、build_outfit_candidates、evaluate_outfit_constraints、calculate_fit、save_outfit、record_wear_feedback。只让工具读取当前用户有权限的记录；user_id 由后端绑定，不能信任模型传参。
+4. 首期只开放 read_wardrobe、propose_outfit；后续增加 search_products、get_product_details、evaluate_purchase、calculate_fit。保存搭配和确认反馈先由普通应用 API 处理。只让工具读取当前用户有权限的记录；user_id 由后端绑定，不能信任模型传参。
 5. 推荐中的主观审美由模型组织候选并解释；预算加总、SKU 价格、去重、尺寸单位转换与规则比较由代码执行。保留来源、采集时间与未知项，不能生成不存在的商品链接、价格或热度。
 6. 事件按 ID 合并；断线恢复时补历史，不以流关闭或 agent.message 单独认定完成。写操作超时先查历史，保留 unconfirmed 状态。工具执行器用数据库领取记录避免多实例重复执行，先持久化结果再回传。
 
