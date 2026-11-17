@@ -1,6 +1,6 @@
 # Railway：带口令的组内 MVP
 
-当前提供部署代码，首次 Railway 构建、平台网络和真实模型连通性仍需在你的账号内验收。它使用共用演示衣橱，不是个人账号系统。前端、API、Worker 在一个应用服务内运行；PostgreSQL 为另一个服务。
+已在 Railway 完成容器构建与公网基础链路验收；云端真实模型生成尚未在本轮调用验证。它使用共用演示衣橱，不是个人账号系统。前端、API、Worker 在一个应用服务内运行；PostgreSQL 为另一个服务。
 
 ## 1. 注册并连接仓库
 
@@ -81,6 +81,8 @@ API 把用户点击生成产生的任务写入数据库，然后立即返回 tas
 - 普通 API 开发入口仍拒绝 production；只有专用 `start:demo` 入口允许受口令保护的 team_demo，内部 API 强制 loopback。
 - 知道口令的人共享开发用户数据和额度；公开招募用户前必须接入独立登录与用户隔离。
 - 本轮数据库测试 102 项通过；本机按 production/team_demo 启动，已验证口令、健康检查、API 会话/CSRF、图片上传与私有读取，不发模型请求。
-- 本机 Docker Hub 基础镜像拉取两次收到 EOF，尚未完成容器构建验证。Railway 将自行构建，首次结果以 Deployments 的构建日志为准。
+- 2026-11-17：Railway Docker 构建与部署成功。公网验证了健康检查、口令登录、未登录 API 拒绝、静态前端、搭配保存、图片上传与私有读取；Qoder / Seedream 服务端变量已配置。本轮未发起付费模型请求。
+- 云端使用新数据库，衣橱初始为空。本机数据不会自动上传；请通过应用上传或主动导入。
+- Railway CLI 提示旧版 railway.json 配置将在 2026-12-01 停用；当前服务的健康检查、重启策略和单实例设置也已直接写入平台。后续维护时需按官方迁移指引迁移仓库配置。
 
 官方参考：[快速开始](https://docs.railway.com/quick-start)、[Variables](https://docs.railway.com/variables)、[PostgreSQL](https://docs.railway.com/databases/postgresql)、[Volumes](https://docs.railway.com/volumes)、[计费](https://docs.railway.com/pricing/plans)。
