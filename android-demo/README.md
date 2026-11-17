@@ -1,6 +1,6 @@
 # MUSE Android 演示 APK
 
-这是现有 MUSE 网页的原生 Java / WebView 演示壳。它不包含 API、Worker、模型密钥或离线后端；手机需要通过同一 Wi-Fi / 热点连接正在运行 MUSE 的电脑。首次打开输入电脑服务地址，以后会自动恢复，顶部可返回或修改地址。
+这是现有 MUSE 网页的原生 Java / WebView 演示壳。它不包含 API、Worker、模型密钥或离线后端；默认连接 https://muse-web-production-eeb115cb.up.railway.app ，首次安装直接显示云端演示口令入口，无需填写地址或连接同一 Wi-Fi。升级旧版时会一次性切换到云端，之后仍可在顶部修改服务地址。APK 不内置演示口令。
 
 ## 构建
 

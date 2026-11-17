@@ -47,6 +47,8 @@ public final class MainActivity extends Activity {
     private static final int INK = 0xFF1C1C1E;
     private static final String PREFS = "muse_demo";
     private static final String SERVICE_URL = "service_url";
+    private static final String DEFAULT_URL = "https://muse-web-production-eeb115cb.up.railway.app";
+    private static final String CLOUD_MIGRATED = "cloud_default_v2";
 
     private SharedPreferences preferences;
     private volatile ServiceUrlPolicy service;
@@ -72,12 +74,18 @@ public final class MainActivity extends Activity {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
                     OnBackInvokedDispatcher.PRIORITY_DEFAULT, backCallback);
         }
-        String saved = preferences.getString(SERVICE_URL, "");
+        // Move existing LAN demo installs to the cloud once; later manual overrides remain available.
+        if (!preferences.getBoolean(CLOUD_MIGRATED, false)) {
+            preferences.edit().putString(SERVICE_URL, DEFAULT_URL)
+                    .putBoolean(CLOUD_MIGRATED, true).apply();
+        }
+        String saved = preferences.getString(SERVICE_URL, DEFAULT_URL);
         try {
             service = ServiceUrlPolicy.parse(saved);
             loadService();
         } catch (IllegalArgumentException ignored) {
-            showAddressEditor();
+            service = ServiceUrlPolicy.parse(DEFAULT_URL);
+            loadService();
         }
     }
 
