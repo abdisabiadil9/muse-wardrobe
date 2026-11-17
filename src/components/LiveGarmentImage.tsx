@@ -41,6 +41,7 @@ export default function LiveGarmentImage({
       src={url}
       alt={item.name}
       loading="lazy"
+      decoding="async"
       onError={() => void refresh()}
     />
   ) : (

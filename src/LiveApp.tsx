@@ -470,7 +470,7 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
     };
   }, [api, me.id]);
   useEffect(() => {
-    scroller.current?.scrollTo({ top: 0 });
+    scroller.current?.scrollTo({ top: 0, behavior: 'instant' });
     setSheet(null);
     localWrite(`${prefix}:page`, page);
     const url = new URL(location.href);

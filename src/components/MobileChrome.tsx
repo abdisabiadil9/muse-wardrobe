@@ -1,4 +1,12 @@
-import type { ReactNode } from 'react';
+import {
+  memo,
+  startTransition,
+  useCallback,
+  useLayoutEffect,
+  useOptimistic,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { TabBar } from '@lenso/ui/tab-bar';
 import { Sheet } from '@lenso/ui/sheet';
 import { Button } from '@lenso/ui/button';
@@ -43,17 +51,47 @@ const styles = stylex.create({
   },
 });
 
-export function MobileTabBar({
-  current,
-  onNavigate,
-  onAI,
-}: {
+type NavigationProps = {
   current: string;
   onNavigate: (page: Destination) => void;
   onAI?: () => void;
+};
+
+export function MobileTabBar({ current, onNavigate, onAI }: NavigationProps) {
+  // Keep the glass subtree independent of draft saves and conversation updates.
+  const actions = useRef({ onNavigate, onAI });
+  useLayoutEffect(() => {
+    actions.current = { onNavigate, onAI };
+  }, [onNavigate, onAI]);
+  const [selection, select] = useOptimistic(current);
+  const navigate = useCallback(
+    (page: Destination | 'ai') => {
+      startTransition(() => {
+        // Give the existing Lenso spring urgent feedback; render the page as a transition.
+        // React reconciles this selection with current for external navigation as well.
+        select(page);
+        if (page === 'ai') actions.current.onAI?.();
+        else actions.current.onNavigate(page);
+      });
+    },
+    [select],
+  );
+  return (
+    <TabBarSurface current={selection} hasAI={!!onAI} onNavigate={navigate} />
+  );
+}
+
+const TabBarSurface = memo(function TabBarSurface({
+  current,
+  hasAI,
+  onNavigate,
+}: {
+  current: string;
+  hasAI: boolean;
+  onNavigate: (page: Destination | 'ai') => void;
 }) {
   return (
-    <div className={`muse-tabbar-dock${onAI ? ' has-ai' : ''}`}>
+    <div className={`muse-tabbar-dock${hasAI ? ' has-ai' : ''}`}>
       <TabBar
         aria-label="主导航"
         layout="phone"
@@ -67,7 +105,7 @@ export function MobileTabBar({
               style={{ display: 'contents' }}
               key={value}
             >
-              {onAI && index === 2 && (
+              {hasAI && index === 2 && (
                 <TabBar.Link
                   href="?screen=ai"
                   isCurrent={current === 'ai'}
@@ -80,7 +118,7 @@ export function MobileTabBar({
                   }
                   onClick={(event) => {
                     event.preventDefault();
-                    onAI();
+                    onNavigate('ai');
                   }}
                 >
                   AI 搭配
@@ -106,7 +144,7 @@ export function MobileTabBar({
       </TabBar>
     </div>
   );
-}
+});
 
 export function WardrobeSheet({
   open,

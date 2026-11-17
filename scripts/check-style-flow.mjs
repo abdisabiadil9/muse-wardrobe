@@ -547,6 +547,19 @@ try {
     throw new Error(JSON.stringify({ errors, unknown }));
   await mkdir('.artifacts', { recursive: true });
   await page.screenshot({ path: '.artifacts/style-flow-chat.png' });
+  // Interrupt pending page transitions: the last intent and selected tab must agree.
+  await page.evaluate(async () => {
+    for (const screen of ['closet', 'discover', 'ai', 'today', 'mine']) {
+      document.querySelector(`.muse-tabbar-dock a[href="?screen=${screen}"]`).click();
+      await new Promise((resolve) => setTimeout(resolve, 16));
+    }
+  });
+  await expect(page.locator('.app-content')).toHaveClass(/page-mine/);
+  await expect(page.locator('.muse-tabbar-dock a[href="?screen=mine"]'))
+    .toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.muse-tabbar-dock a[aria-current="page"]')).toHaveCount(1);
+  if (errors.length || unknown.length)
+    throw new Error(JSON.stringify({ errors, unknown }));
   console.log(
     'PASS: native timeline, stable expansion, explicit adoption, refresh recovery, home card, try-on result, isolated conversation history, mobile layout, mine, inspiration. No provider calls.',
   );
