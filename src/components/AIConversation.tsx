@@ -14,6 +14,8 @@ import {
   ChevronRight,
   CircleStop,
   LoaderCircle,
+  History,
+  SquarePen,
   Minus,
   Plus,
   RefreshCw,
@@ -65,6 +67,7 @@ const labels: Record<string, string> = {
   unconfirmed: '正在等待结果确认',
 };
 const toolLabels: Record<string, string> = {
+  Read: '读取搭配资料',
   read_wardrobe: '查看我的衣橱',
   propose_outfit: '整理搭配方案',
   read_memory: '了解穿搭偏好',
@@ -194,6 +197,10 @@ function ToolRow({
       {open && (
         <div id={`tool-${part.id}`} className="ai-tool-detail">
           <div>
+            <span>工具</span>
+            <pre>{part.name}</pre>
+          </div>
+          <div>
             <span>调用参数</span>
             <pre>{readable(part.input) || '无额外参数'}</pre>
           </div>
@@ -314,9 +321,14 @@ export default function AIConversation({
   const c = useConversation(api, owner);
   const [message, setMessage] = useState(''),
     [localError, setLocalError] = useState(''),
-    [preparing, setPreparing] = useState(false);
+    [preparingIds, setPreparingIds] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [unread, setUnread] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const historyPanel = useRef<HTMLElement>(null);
+  const activeId = useRef(c.activeId);
+  const previousConversation = useRef(c.activeId);
+  activeId.current = c.activeId;
   const [viewingImage, setViewingImage] = useState<{
     url: string;
     alt: string;
@@ -343,7 +355,7 @@ export default function AIConversation({
   const latest = c.tasks.at(-1);
   const active = c.tasks.find(taskIsWorking);
   const waiting = c.tasks.find((task) => task.status === 'needs_input');
-  const busy = preparing || c.submitting;
+  const busy = preparingIds.includes(c.activeId) || c.submitting;
   useEffect(() => {
     if (initialPrompt) {
       setMessage(initialPrompt);
@@ -352,7 +364,7 @@ export default function AIConversation({
     }
   }, [initialPrompt, onPromptConsumed]);
   useEffect(() => {
-    for (const task of c.tasks) {
+    for (const task of c.allTasks) {
       const signature = JSON.stringify([
         task.last_event_seq,
         task.status,
@@ -364,14 +376,51 @@ export default function AIConversation({
         onTaskChange?.(task);
       }
     }
-  }, [c.tasks, onTaskChange]);
+  }, [c.allTasks, onTaskChange]);
   useEffect(() => {
     lastCallback.current = {};
     setExpanded({});
     follow.current = true;
     setUnread(false);
   }, [owner]);
+  useLayoutEffect(() => {
+    if (previousConversation.current === c.activeId) return;
+    previousConversation.current = c.activeId;
+    setMessage('');
+    setLocalError('');
+    setViewingImage(null);
+    setExpanded({});
+    follow.current = true;
+    setUnread(false);
+  }, [c.activeId]);
+  useEffect(() => {
+    if (!historyOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    historyPanel.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setHistoryOpen(false);
+      if (event.key !== 'Tab') return;
+      const buttons =
+        historyPanel.current?.querySelectorAll<HTMLButtonElement>('button');
+      if (!buttons?.length) return;
+      const first = buttons[0],
+        last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', keyboard);
+    return () => {
+      window.removeEventListener('keydown', keyboard);
+      previous?.focus();
+    };
+  }, [historyOpen]);
   const contentVersion = JSON.stringify([
+    c.activeId,
     c.tasks.map((task) => [task.id, task.status, task.result, task.question]),
     c.events,
     c.pending?.key,
@@ -399,28 +448,40 @@ export default function AIConversation({
   }, []);
   const submit = async () => {
     const text = message.trim();
-    if (!text || busy || active || c.pending || !enabled || !items.length)
+    if (
+      !text ||
+      busy ||
+      active ||
+      c.pending ||
+      c.loading ||
+      !enabled ||
+      !items.length
+    )
       return;
-    setPreparing(true);
+    const threadId = c.activeId;
+    setPreparingIds((current) => [...current, threadId]);
     setLocalError('');
     try {
       const snapshot = waiting ? draft : await flush();
-      await c.send(text, snapshot);
-      setMessage('');
-      follow.current = true;
-      toBottom();
+      await c.send(text, snapshot, threadId);
+      if (activeId.current === threadId) {
+        setMessage((current) => (current.trim() === text ? '' : current));
+        follow.current = true;
+        toBottom();
+      }
     } catch (error) {
-      setLocalError(errorMessage(error));
+      if (activeId.current === threadId) setLocalError(errorMessage(error));
     } finally {
-      setPreparing(false);
+      setPreparingIds((current) => current.filter((id) => id !== threadId));
     }
   };
   const recover = async () => {
+    const threadId = c.activeId;
     setLocalError('');
     try {
       await c.recover();
     } catch (error) {
-      setLocalError(errorMessage(error));
+      if (activeId.current === threadId) setLocalError(errorMessage(error));
     }
   };
   const suggestions = ['明天上课怎么穿', '保留外套，换个搭法'];
@@ -432,11 +493,33 @@ export default function AIConversation({
             <Sparkles size={18} />
           </span>
           <div>
-            <h1>MUSE AI</h1>
-            <p>懂你的衣橱，也懂今天的你</p>
+            <h1>Lumi</h1>
+            <p>
+              {c.empty
+                ? '你的衣橱搭配助手'
+                : c.conversations.find((thread) => thread.id === c.activeId)
+                    ?.title}
+            </p>
           </div>
         </div>
-        <span className="ai-header-note">穿搭灵感</span>
+        <div className="ai-header-actions">
+          <button
+            className="ai-icon-button"
+            aria-label="历史对话"
+            title="历史对话"
+            onClick={() => setHistoryOpen(true)}
+          >
+            <History size={20} strokeWidth={1.7} />
+          </button>
+          <button
+            className="ai-icon-button"
+            aria-label="新建对话"
+            title="新建对话"
+            onClick={c.newConversation}
+          >
+            <SquarePen size={20} strokeWidth={1.7} />
+          </button>
+        </div>
       </header>
       <div
         className="ai-chat-viewport"
@@ -463,8 +546,8 @@ export default function AIConversation({
               <div className="ai-welcome-symbol">
                 <Sparkles size={30} strokeWidth={1.4} />
               </div>
-              <span className="ai-eyebrow">YOUR PERSONAL STYLIST</span>
-              <h2>今天，想怎么穿？</h2>
+              <span className="ai-eyebrow">Lumi · 你的穿搭助手</span>
+              <h2>今天想怎么穿？</h2>
               <p>
                 一点想法，一个场合。
                 <br />
@@ -505,7 +588,7 @@ export default function AIConversation({
                 )}
                 {!hasUser && (
                   <div className="ai-assistant-byline">
-                    <Sparkles size={13} /> MUSE
+                    <Sparkles size={13} /> Lumi
                   </div>
                 )}
                 {parts.map((part) => {
@@ -514,7 +597,7 @@ export default function AIConversation({
                       <div className="ai-native-user-turn" key={part.id}>
                         <div className="ai-user-message">{part.text}</div>
                         <div className="ai-assistant-byline">
-                          <Sparkles size={13} /> MUSE
+                          <Sparkles size={13} /> Lumi
                         </div>
                       </div>
                     );
@@ -686,7 +769,7 @@ export default function AIConversation({
         >
           <textarea
             ref={input}
-            aria-label={waiting ? '补充你的搭配要求' : '告诉 MUSE 你的穿搭想法'}
+            aria-label={waiting ? '补充你的搭配要求' : '告诉 Lumi 你的穿搭想法'}
             rows={1}
             maxLength={2000}
             placeholder={waiting ? '补充一点你的想法…' : '说说今天的穿搭想法…'}
@@ -716,6 +799,7 @@ export default function AIConversation({
               busy ||
               !!active ||
               !!c.pending ||
+              c.loading ||
               !enabled ||
               !items.length
             }
@@ -729,6 +813,73 @@ export default function AIConversation({
         </form>
         <p className="ai-compose-note">灵感由 AI 提供，选择始终属于你</p>
       </div>
+      {historyOpen && (
+        <div
+          className="ai-history-backdrop"
+          onClick={() => setHistoryOpen(false)}
+        >
+          <section
+            className="ai-history-panel"
+            ref={historyPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-history-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="ai-history-heading">
+              <div>
+                <h2 id="ai-history-title">历史对话</h2>
+                <p>对话保存在当前设备的浏览器中</p>
+              </div>
+              <button
+                className="ai-icon-button"
+                aria-label="关闭历史对话"
+                onClick={() => setHistoryOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <button
+              className="ai-history-new"
+              onClick={() => {
+                c.newConversation();
+                setHistoryOpen(false);
+              }}
+            >
+              <SquarePen size={18} /> 新建对话
+            </button>
+            <div className="ai-history-list">
+              {[...c.conversations]
+                .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+                .map((thread) => (
+                  <button
+                    className={`ai-history-item ${thread.id === c.activeId ? 'is-active' : ''}`}
+                    key={thread.id}
+                    aria-current={thread.id === c.activeId ? 'true' : undefined}
+                    onClick={() => {
+                      c.selectConversation(thread.id);
+                      setHistoryOpen(false);
+                    }}
+                  >
+                    <span>
+                      <strong>{thread.title}</strong>
+                      <small>
+                        {thread.pending
+                          ? '有一条消息待确认'
+                          : `${thread.ids.length} 轮搭配对话`}
+                      </small>
+                    </span>
+                    {thread.id === c.activeId ? (
+                      <Check size={17} />
+                    ) : (
+                      <ChevronRight size={16} />
+                    )}
+                  </button>
+                ))}
+            </div>
+          </section>
+        </div>
+      )}
       {viewingImage && (
         <div
           className="ai-image-viewer"

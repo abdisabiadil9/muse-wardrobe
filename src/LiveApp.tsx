@@ -18,6 +18,7 @@ import ClosetGallery from './components/ClosetGallery';
 import StyleStudio, { type CanvasLayout } from './components/StyleStudio';
 import { MobileTabBar, WardrobeSheet } from './components/MobileChrome';
 import AIConversation from './components/AIConversation';
+import { readConversationTaskIndex } from './conversation';
 import {
   InspirationPage,
   MyStylePage,
@@ -54,6 +55,7 @@ import {
   toOutfit,
   toSaved,
   validateProposal,
+  wireLayout,
 } from './api/viewModels';
 import {
   garments as demoGarments,
@@ -160,9 +162,9 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
       if (!task) return;
       setTaskHistory((previous) => {
         const old = previous.find((h) => h.task.id === task.id);
-        const context = localRead<{
-          contexts?: Record<string, { scene: Scene }>;
-        }>(`${prefix}:conversation:v1`, {}).contexts?.[task.id];
+        const context = readConversationTaskIndex(localStorage, me.id).contexts[
+          task.id
+        ];
         const entry = {
           task,
           scene: context?.scene || old?.scene || target || sceneRef.current,
@@ -394,10 +396,7 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
             type: h.task.type,
           });
       }
-      const conversation = localRead<{
-        ids?: string[];
-        contexts?: Record<string, { scene: Scene }>;
-      }>(`${prefix}:conversation:v1`, {});
+      const conversation = readConversationTaskIndex(localStorage, me.id);
       if (page !== 'ai')
         for (const id of conversation.ids || [])
           if (
@@ -906,7 +905,7 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
                 },
               ]),
             ),
-            canvas_layout: look.layout ?? current.canvas_layout,
+            canvas_layout: wireLayout(look.layout ?? current.canvas_layout),
           });
     servers.current[target] = accepted;
     setDraft(accepted);
@@ -1004,10 +1003,8 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
             rememberTask(task);
             const result = task.result;
             const target =
-              localRead<{ contexts?: Record<string, { scene: Scene }> }>(
-                `${prefix}:conversation:v1`,
-                {},
-              ).contexts?.[task.id]?.scene ||
+              readConversationTaskIndex(localStorage, me.id).contexts[task.id]
+                ?.scene ||
               taskHistory.find((h) => h.task.id === task.id)?.scene ||
               scene;
             if (result?.kind === 'outfit_proposal')

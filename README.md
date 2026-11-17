@@ -1,5 +1,7 @@
 # MUSE · 从衣橱开始的今日搭配
 
+**组员首次运行：[电脑部署、密钥配置与 APK 安装](docs/TEAM_QUICKSTART.md)**
+
 面向手机的穿搭应用，使用 React、TypeScript、Vite 和 Lenso UI。当前交付为**可运行的本地开发版**：衣橱、三场景草稿、AI 搭配和图片试穿已连接业务 API 与后台 Worker。
 
 **[手机热点与安装说明](docs/MOBILE_ACCESS.md)** · **[本地启动](docs/LOCAL_DEVELOPMENT.md)** · **[完整 SPEC](docs/SPEC.md)** · **[团队交接](docs/TEAM_HANDOFF.md)** · **[API 契约 v1.1](docs/contracts/openapi.json)** · **[公开交互演示](https://muse-mobile-wardrobe.gentle-dell-0151.chatgpt.site)**

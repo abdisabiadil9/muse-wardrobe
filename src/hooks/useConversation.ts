@@ -9,13 +9,17 @@ import {
 import { sceneLabels } from "../api/viewModels";
 import {
   composeStylingMessage,
-  conversationStorageKey,
+  conversationHistoryKey,
+  conversationTitle,
+  newConversationThread,
+  updateConversationThread,
   eventText,
   mergeNativeEvents,
   mergeTask,
-  readConversationRecord,
+  readConversationHistory,
   taskIsWorking,
-  type ConversationRecord,
+  type ConversationHistory,
+  type ConversationThread,
   type ConversationTask,
   type NativeConversationEvent,
   type PendingMessage,
@@ -26,33 +30,42 @@ type NativePage = {
   next_cursor: string | null;
 };
 export function useConversation(api: Api, owner: string) {
-  const [record, setRecord] = useState<ConversationRecord>(() =>
-    readConversationRecord(localStorage, owner),
+  const [history, setHistory] = useState<ConversationHistory>(() =>
+    readConversationHistory(localStorage, owner),
   );
+  const record = history.threads.find(
+    (thread) => thread.id === history.activeId,
+  )!;
   const [tasks, setTasks] = useState<Record<string, ConversationTask>>({});
   const [events, setEvents] = useState<
     Record<string, NativeConversationEvent[]>
   >({});
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const recordRef = useRef(record),
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submittingIds, setSubmittingIds] = useState<string[]>([]);
+  const historyRef = useRef(history),
     tasksRef = useRef(tasks),
     eventsRef = useRef(events);
   const ownerRef = useRef(owner);
+  const loadedOwner = useRef(owner);
   ownerRef.current = owner;
-  const busy = useRef(false);
+  const busy = useRef(new Set<string>());
   const cursors = useRef<Record<string, string>>({});
   const incompleteReads = useRef(new Set<string>());
   const syncRef = useRef<() => Promise<void>>(async () => {});
   const save = useCallback(
-    (next: ConversationRecord) => {
-      // Persist before dispatch so an uncertain request always retains its original key.
-      localStorage.setItem(conversationStorageKey(owner), JSON.stringify(next));
-      recordRef.current = next;
-      setRecord(next);
+    (next: ConversationHistory) => {
+      localStorage.setItem(conversationHistoryKey(owner), JSON.stringify(next));
+      historyRef.current = next;
+      setHistory(next);
     },
     [owner],
   );
+  const updateThread = (
+    id: string,
+    update: (thread: ConversationThread) => ConversationThread,
+  ) => save(updateConversationThread(historyRef.current, id, update));
+  const setError = (id: string, message: string) =>
+    setErrors((current) => ({ ...current, [id]: message }));
   const acceptTask = useCallback((task: ConversationTask) => {
     const next = {
       ...tasksRef.current,
@@ -62,34 +75,23 @@ export function useConversation(api: Api, owner: string) {
     setTasks(next);
   }, []);
   useEffect(() => {
-    let restored = readConversationRecord(localStorage, owner);
-    for (const scene of ["daily", "weekend", "meeting"]) {
-      try {
-        const legacy = JSON.parse(
-          localStorage.getItem(`muse-live:${owner}:task:styling:${scene}`) ||
-            "null",
-        );
-        if (
-          typeof legacy?.taskId === "string" &&
-          !restored.ids.includes(legacy.taskId)
-        )
-          restored = { ...restored, ids: [...restored.ids, legacy.taskId] };
-      } catch {
-        /* Ignore a malformed old local record. */
-      }
-    }
-    save(restored);
+    save(
+      loadedOwner.current === owner
+        ? historyRef.current
+        : readConversationHistory(localStorage, owner),
+    );
+    loadedOwner.current = owner;
     tasksRef.current = {};
     eventsRef.current = {};
     cursors.current = {};
     incompleteReads.current = new Set();
-    setSubmitting(false);
+    setSubmittingIds([]);
     setTasks({});
     setEvents({});
-    setError("");
-    busy.current = false;
+    setErrors({});
+    busy.current = new Set();
   }, [owner, save]);
-  const idKey = record.ids.join(",");
+  const idKey = history.threads.flatMap((thread) => thread.ids).join(",");
   useEffect(() => {
     const controller = new AbortController();
     let polling = false;
@@ -129,7 +131,11 @@ export function useConversation(api: Api, owner: string) {
       if (polling || controller.signal.aborted) return;
       polling = true;
       try {
-        const ids = recordRef.current.ids.filter(
+        const ids = [
+          ...new Set(
+            historyRef.current.threads.flatMap((thread) => thread.ids),
+          ),
+        ].filter(
           (id) =>
             all ||
             incompleteReads.current.has(id) ||
@@ -138,15 +144,19 @@ export function useConversation(api: Api, owner: string) {
             tasksRef.current[id].status === "unconfirmed",
         );
         const results = await Promise.allSettled(ids.map(refreshOne));
-        const failure = results.find(
-          (r): r is PromiseRejectedResult => r.status === "rejected",
-        );
-        if (
-          !controller.signal.aborted &&
-          ids.length &&
-          !recordRef.current.pending
-        )
-          setError(failure ? errorMessage(failure.reason) : "");
+        if (!controller.signal.aborted) {
+          for (const thread of historyRef.current.threads) {
+            const relevant = results.filter((_, index) =>
+              thread.ids.includes(ids[index]),
+            );
+            const failure = relevant.find(
+              (result): result is PromiseRejectedResult =>
+                result.status === "rejected",
+            );
+            if (relevant.length && !thread.pending)
+              setError(thread.id, failure ? errorMessage(failure.reason) : "");
+          }
+        }
       } finally {
         polling = false;
       }
@@ -168,12 +178,13 @@ export function useConversation(api: Api, owner: string) {
       document.removeEventListener("visibilitychange", reconnect);
     };
   }, [api, owner, idKey, acceptTask]);
-  const dispatch = async (pending: PendingMessage) => {
-    if (busy.current) return;
+  const dispatch = async (pending: PendingMessage, threadId: string) => {
+    if (busy.current.has(threadId)) return;
     const requestOwner = owner;
-    busy.current = true;
-    setSubmitting(true);
-    setError("");
+    const requestBusy = busy.current;
+    requestBusy.add(threadId);
+    setSubmittingIds([...requestBusy]);
+    setError(threadId, "");
     try {
       const accepted = await api.post<{ task_id: string }>(
         pending.path,
@@ -183,8 +194,7 @@ export function useConversation(api: Api, owner: string) {
       if (ownerRef.current !== requestOwner) return;
       if (!accepted?.task_id)
         throw new Error("提交结果尚未确认，请恢复上次提交。");
-      const current = recordRef.current;
-      save({
+      updateThread(threadId, (current) => ({
         ...current,
         ids: current.ids.includes(accepted.task_id)
           ? current.ids
@@ -201,31 +211,49 @@ export function useConversation(api: Api, owner: string) {
           ...(pending.context ? { [accepted.task_id]: pending.context } : {}),
         },
         pending: undefined,
-      });
+        updatedAt: new Date().toISOString(),
+      }));
       // Same-task needs_input continuations also need a fresh snapshot immediately.
       if (tasksRef.current[accepted.task_id])
         acceptTask({ ...tasksRef.current[accepted.task_id], status: "queued" });
       void syncRef.current();
     } catch (failure) {
       if (ownerRef.current !== requestOwner) return;
-      setError(errorMessage(failure));
+      setError(threadId, errorMessage(failure));
       if (
         failure instanceof ApiError &&
         failure.status >= 400 &&
         failure.status < 500 &&
         failure.status !== 408
       )
-        save({ ...recordRef.current, pending: undefined });
+        updateThread(threadId, (current) => ({
+          ...current,
+          pending: undefined,
+        }));
       throw failure;
     } finally {
-      busy.current = false;
-      if (ownerRef.current === requestOwner) setSubmitting(false);
+      requestBusy.delete(threadId);
+      if (ownerRef.current === requestOwner) setSubmittingIds([...requestBusy]);
     }
   };
-  const send = async (message: string, draft: Draft) => {
-    if (busy.current || recordRef.current.pending)
+  const send = async (
+    message: string,
+    draft: Draft,
+    threadId = historyRef.current.activeId,
+  ) => {
+    const current = historyRef.current.threads.find(
+      (thread) => thread.id === threadId,
+    );
+    if (!current) throw new Error("对话已不可用，请新建对话。");
+    if (busy.current.has(threadId) || current.pending)
       throw new Error("请先恢复上次提交。");
-    const ordered = recordRef.current.ids
+    if (
+      current.ids.some(
+        (id) => !tasksRef.current[id] || incompleteReads.current.has(id),
+      )
+    )
+      throw new Error("正在恢复对话，请稍候再发送。");
+    const ordered = current.ids
       .map((id) => tasksRef.current[id])
       .filter(Boolean);
     const waiting = [...ordered]
@@ -237,7 +265,7 @@ export function useConversation(api: Api, owner: string) {
       .filter((task) => task.status === "succeeded")
       .slice(-3)
       .map((task) => ({
-        user: recordRef.current.messages[task.id] || "",
+        user: current.messages[task.id] || "",
         assistant: (eventsRef.current[task.id] || [])
           .filter((event) => event.type === "agent.message")
           .map(eventText)
@@ -257,7 +285,7 @@ export function useConversation(api: Api, owner: string) {
       message,
       createdAt: new Date().toISOString(),
       context: waiting
-        ? recordRef.current.contexts[waiting.id]
+        ? current.contexts[waiting.id]
         : { scene: draft.scene, draftId: draft.id, revision: draft.revision },
       path: waiting ? `/tasks/${waiting.id}/messages` : "/styling-tasks",
       body: waiting
@@ -270,36 +298,73 @@ export function useConversation(api: Api, owner: string) {
             message: contextualMessage,
           },
     };
-    save({ ...recordRef.current, pending });
-    await dispatch(pending);
+    updateThread(threadId, (thread) => ({
+      ...thread,
+      pending,
+      title: thread.ids.length ? thread.title : conversationTitle(message),
+      updatedAt: pending.createdAt,
+    }));
+    await dispatch(pending, threadId);
   };
   const recover = async () => {
-    if (recordRef.current.pending) await dispatch(recordRef.current.pending);
+    const current = historyRef.current.threads.find(
+      (thread) => thread.id === historyRef.current.activeId,
+    )!;
+    if (current.pending) await dispatch(current.pending, current.id);
     else await syncRef.current();
   };
   const cancel = async (id: string) => {
+    const requestOwner = owner;
+    const threadId = historyRef.current.threads.find((thread) =>
+      thread.ids.includes(id),
+    )?.id;
     try {
-      acceptTask(
-        await api.post<ConversationTask>(
-          `/tasks/${encodeURIComponent(id)}/cancel`,
-        ),
+      const task = await api.post<ConversationTask>(
+        `/tasks/${encodeURIComponent(id)}/cancel`,
       );
-      setError("");
+      if (ownerRef.current !== requestOwner) return;
+      acceptTask(task);
+      if (ownerRef.current === requestOwner && threadId) setError(threadId, "");
     } catch (failure) {
-      setError(errorMessage(failure));
+      if (ownerRef.current === requestOwner && threadId)
+        setError(threadId, errorMessage(failure));
     }
   };
+  const newConversation = () => {
+    const empty = historyRef.current.threads.find(
+      (thread) => !thread.ids.length && !thread.pending,
+    );
+    const thread = empty || newConversationThread();
+    save({
+      ...historyRef.current,
+      activeId: thread.id,
+      threads: empty
+        ? historyRef.current.threads
+        : [thread, ...historyRef.current.threads],
+    });
+  };
+  const selectConversation = (id: string) => {
+    if (historyRef.current.threads.some((thread) => thread.id === id))
+      save({ ...historyRef.current, activeId: id });
+  };
   return {
+    activeId: record.id,
+    conversations: history.threads,
+    newConversation,
+    selectConversation,
+    allTasks: Object.values(tasks),
     tasks: record.ids.map((id) => tasks[id]).filter(Boolean),
-    events,
+    events: Object.fromEntries(record.ids.map((id) => [id, events[id] || []])),
     messages: record.messages,
     pending: record.pending,
-    submitting,
-    error,
+    submitting: submittingIds.includes(record.id),
+    error: errors[record.id] || "",
     send,
     recover,
     cancel,
-    loading: !!record.ids.length && !Object.keys(tasks).length,
+    loading: record.ids.some(
+      (id) => !tasks[id] || incompleteReads.current.has(id),
+    ),
     empty: !record.ids.length && !record.pending,
   };
 }

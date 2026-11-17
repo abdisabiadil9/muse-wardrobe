@@ -5,6 +5,7 @@ import type {
   ApiOutfit,
   ApiSlots,
   Draft,
+  Layout,
   OutfitProposal,
   Scene,
 } from './client';
@@ -111,13 +112,28 @@ export function validateProposal(
   }
   return proposal.slots;
 }
+// Older local canvases predate the wire contract's required layer order.
+// Normalize only at the API boundary; preserve every garment and position.
+export const wireLayout = (layout: Layout) =>
+  Object.fromEntries(
+    Object.entries(layout).map(([slot, item], index) => [
+      slot,
+      {
+        x: item.x,
+        y: item.y,
+        width: item.width,
+        rotation: item.rotation,
+        z_index: item.z_index ?? (slot === 'bag' ? 5 : index),
+      },
+    ]),
+  );
 export const draftBody = (draft: Draft) => ({
   expected_revision: draft.revision,
   slots: draft.slots,
-  canvas_layout: draft.canvas_layout,
+  canvas_layout: wireLayout(draft.canvas_layout),
 });
 export const draftContent = (draft: Draft) =>
-  JSON.stringify([draft.slots, draft.canvas_layout]);
+  JSON.stringify([draft.slots, wireLayout(draft.canvas_layout)]);
 export function tryonRequest(
   draft: Draft,
   personAssetId: string,

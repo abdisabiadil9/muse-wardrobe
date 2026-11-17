@@ -1,3 +1,4 @@
+import { readConversationTaskIndex } from './conversation.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -6,6 +7,11 @@ import ReactMarkdown from 'react-markdown';
 import {
   composeStylingMessage,
   conversationStorageKey,
+  conversationHistoryKey,
+  conversationTitle,
+  newConversationThread,
+  readConversationHistory,
+  updateConversationThread,
   displayUserMessage,
   displayAgentText,
   emptyRecord,
@@ -296,4 +302,151 @@ test('inline media allows protected app media and owned assets while blocking ar
     ]),
     'https://signed.example/outfit.png?x=1',
   );
+});
+
+test('history migrates the legacy transcript and scene tasks exactly once, preserving pending recovery', () => {
+  const legacy = {
+    ...emptyRecord(),
+    ids: ['first'],
+    messages: { first: '明天的上课搭配' },
+    pending: {
+      key: 'original-key',
+      path: '/styling-tasks',
+      body: { message: 'original-body' },
+      message: '继续',
+      createdAt: '2026-11-17T01:00:00Z',
+    },
+  };
+  const values = new Map([
+    [conversationStorageKey('owner'), JSON.stringify(legacy)],
+    ['muse-live:owner:task:styling:daily', JSON.stringify({ taskId: 'first' })],
+    [
+      'muse-live:owner:task:styling:weekend',
+      JSON.stringify({ taskId: 'second' }),
+    ],
+  ]);
+  const storage = { getItem: (key) => values.get(key) || null };
+  const migrated = readConversationHistory(storage, 'owner');
+  assert.equal(migrated.threads.length, 1);
+  assert.deepEqual(migrated.threads[0].ids, ['first', 'second']);
+  assert.equal(migrated.threads[0].title, '明天的上课搭配');
+  assert.deepEqual(migrated.threads[0].pending, legacy.pending);
+  const fresh = newConversationThread('new');
+  const saved = {
+    ...migrated,
+    activeId: fresh.id,
+    threads: [fresh, ...migrated.threads],
+  };
+  values.set(conversationHistoryKey('owner'), JSON.stringify(saved));
+  assert.deepEqual(readConversationHistory(storage, 'owner'), saved);
+  assert.deepEqual(
+    readConversationHistory(storage, 'owner').threads[0].ids,
+    [],
+  );
+  assert.equal(
+    readConversationHistory(storage, 'other-owner').threads[0].ids.length,
+    0,
+  );
+});
+
+test('late accepted requests update their originating chat and leave the selected chat intact', () => {
+  const first = {
+    ...newConversationThread('a'),
+    pending: {
+      key: 'stable',
+      path: '/styling-tasks',
+      message: '第一条',
+      body: { message: '第一条' },
+    },
+  };
+  const second = newConversationThread('b');
+  const history = { version: 2, activeId: 'b', threads: [first, second] };
+  const completed = updateConversationThread(history, 'a', (thread) => ({
+    ...thread,
+    ids: ['accepted-task'],
+    pending: undefined,
+  }));
+  assert.equal(completed.activeId, 'b');
+  assert.equal(completed.threads[1], second);
+  assert.deepEqual(completed.threads[1].ids, []);
+  assert.deepEqual(completed.threads[1].messages, {});
+  assert.equal(completed.threads[1].pending, undefined);
+  assert.deepEqual(completed.threads[0].ids, ['accepted-task']);
+  assert.equal(first.pending.key, 'stable');
+});
+
+test('chat titles normalize whitespace and malformed saved history safely falls back', () => {
+  assert.equal(conversationTitle('  明天   上课\n怎么穿 '), '明天 上课 怎么穿');
+  assert.equal(conversationTitle('长'.repeat(40)).length, 24);
+  assert.equal(conversationTitle('  '), '新对话');
+  const thread = newConversationThread('kept');
+  const read = readConversationHistory(
+    {
+      getItem: (key) =>
+        key.endsWith(':v2')
+          ? JSON.stringify({
+              version: 2,
+              activeId: 'missing',
+              threads: [null, { ...thread, updatedAt: null }, thread],
+            })
+          : null,
+    },
+    'owner',
+  );
+  assert.equal(read.activeId, 'kept');
+  assert.equal(read.threads.length, 1);
+  assert.equal(typeof read.threads[0].updatedAt, 'string');
+  assert.equal(
+    readConversationHistory({ getItem: () => 'malformed' }, 'owner').threads[0]
+      .title,
+    '新对话',
+  );
+});
+
+test('new chat IDs work on LAN HTTP where crypto.randomUUID is unavailable', () => {
+  const descriptor = Object.getOwnPropertyDescriptor(crypto, 'randomUUID');
+  Object.defineProperty(crypto, 'randomUUID', {
+    value: undefined,
+    configurable: true,
+  });
+  try {
+    const first = newConversationThread();
+    const second = newConversationThread();
+    assert.match(first.id, /^[a-f0-9]{40}$/);
+    assert.notEqual(first.id, second.id);
+  } finally {
+    if (descriptor) Object.defineProperty(crypto, 'randomUUID', descriptor);
+    else delete crypto.randomUUID;
+  }
+});
+
+test('home cards retain scene origins from every v2 thread regardless of active conversation', () => {
+  const first = {
+    ...newConversationThread('first'),
+    ids: ['task-daily'],
+    contexts: { 'task-daily': { scene: 'daily', draftId: 'd1', revision: 2 } },
+  };
+  const second = {
+    ...newConversationThread('second'),
+    ids: ['task-meeting'],
+    contexts: {
+      'task-meeting': { scene: 'meeting', draftId: 'd2', revision: 4 },
+    },
+  };
+  const index = readConversationTaskIndex(
+    {
+      getItem: (key) =>
+        key.endsWith(':v2')
+          ? JSON.stringify({
+              version: 2,
+              activeId: 'second',
+              threads: [first, second],
+            })
+          : null,
+    },
+    'owner',
+  );
+  assert.deepEqual(index.ids, ['task-daily', 'task-meeting']);
+  assert.equal(index.contexts['task-daily'].scene, 'daily');
+  assert.equal(index.contexts['task-meeting'].scene, 'meeting');
 });

@@ -11,7 +11,7 @@ export type ApiSlot = {
 export type ApiSlots = Partial<Record<SlotName, ApiSlot>>;
 export type Layout = Record<
   string,
-  { x: number; y: number; width: number; rotation: number }
+  { x: number; y: number; width: number; rotation: number; z_index?: number }
 >;
 export type Draft = {
   id: string;

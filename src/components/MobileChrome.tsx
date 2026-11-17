@@ -72,9 +72,11 @@ export function MobileTabBar({
                   href="?screen=ai"
                   isCurrent={current === 'ai'}
                   icon={
-                    <span className="muse-ai-tab-icon">
-                      <Sparkles size={24} />
-                    </span>
+                    <Sparkles
+                      className="muse-ai-tab-icon"
+                      size={22}
+                      strokeWidth={current === 'ai' ? 2 : 1.7}
+                    />
                   }
                   onClick={(event) => {
                     event.preventDefault();

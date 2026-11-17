@@ -266,9 +266,9 @@ try {
     .locator('.muse-tabbar-dock')
     .getByRole('link', { name: 'AI 搭配', exact: true })
     .click();
-  await expect(page.getByRole('heading', { name: 'MUSE AI' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Lumi' })).toBeVisible();
   await page
-    .getByRole('textbox', { name: '告诉 MUSE 你的穿搭想法' })
+    .getByRole('textbox', { name: '告诉 Lumi 你的穿搭想法' })
     .fill('明天上课，帮我搭一套。');
   await page.getByRole('button', { name: '发送消息', exact: true }).click();
   const tool = page.locator('.ai-tool-trigger').first();
@@ -381,6 +381,28 @@ try {
   ).toBeVisible();
   if (stylingRequests !== 1 || patchRequests !== 0)
     throw new Error('Reload resubmitted or adopted a proposal');
+  await page.getByRole('button', { name: '新建对话', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: '今天想怎么穿？' }),
+  ).toBeVisible();
+  await expect(page.locator('.ai-round')).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: '今天想怎么穿？' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: '历史对话', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: '历史对话' })).toBeVisible();
+  await expect(page.locator('.ai-history-item')).toHaveCount(2);
+  await page
+    .locator('.ai-history-item')
+    .filter({ hasText: '明天上课，帮我搭一套。' })
+    .click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: '查看这套搭配并调整' }),
+  ).toBeVisible();
+  if (stylingRequests !== 1)
+    throw new Error('Creating or switching conversations started generation');
   await page.getByRole('button', { name: '查看这套搭配并调整' }).click();
   await expect(page.getByText('这套里的单品', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '收藏搭配', exact: true }).click();
@@ -391,6 +413,14 @@ try {
     .getByRole('link', { name: '今日', exact: true })
     .click();
   await expect(page.locator('.content-look-card').first()).toBeVisible();
+  await page.locator('.content-look-card').first().scrollIntoViewIfNeeded();
+  await page.screenshot({ path: '.artifacts/home-outfit-cards.png' });
+  const background = await page
+    .locator('.content-piece .item-image')
+    .first()
+    .evaluate((el) => getComputedStyle(el).backgroundColor);
+  if (background !== 'rgba(0, 0, 0, 0)')
+    throw new Error('Garment card reintroduced an opaque image rectangle');
   await page.locator('.content-look-card').first().click();
   await page.getByRole('button', { name: '生成上身图', exact: true }).click();
   await expect(page.getByText('女模特', { exact: true })).toBeVisible();
@@ -435,22 +465,90 @@ try {
     .getByRole('button', { name: '用这个灵感搭配', exact: true })
     .click();
   await expect(
-    page.getByRole('textbox', { name: '告诉 MUSE 你的穿搭想法' }),
+    page.getByRole('textbox', { name: '告诉 Lumi 你的穿搭想法' }),
   ).not.toHaveValue('');
   if (stylingRequests !== 1 || tryonRequests !== 1)
     throw new Error(
       'Navigation or inspiration automatically started generation',
     );
+  // A new conversation must send only its own request, never previous chat context.
+  await page.getByRole('button', { name: '新建对话', exact: true }).click();
+  let secondMessage;
+  const secondTask = {
+    ...task,
+    id: 'style-second',
+    status: 'needs_input',
+    result: null,
+    question: '你想搭配什么场合？',
+  };
+  await page.route('**/api/v1/styling-tasks', async (route) => {
+    secondMessage = route.request().postDataJSON().message;
+    stylingRequests++;
+    await respond(route, { task_id: secondTask.id, status: 'queued' }, 202);
+  });
+  await page.route('**/api/v1/tasks/style-second', (route) =>
+    respond(route, secondTask),
+  );
+  await page.route('**/api/v1/tasks/style-second/agent-events?*', (route) =>
+    respond(route, { data: [], next_cursor: null }),
+  );
+  await page
+    .getByRole('textbox', { name: '告诉 Lumi 你的穿搭想法' })
+    .fill('周末去看展');
+  await page.getByRole('button', { name: '发送消息', exact: true }).click();
+  await expect.poll(() => secondMessage).toBe('周末去看展');
+  await expect(
+    page.getByText('你想搭配什么场合？', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: '查看这套搭配并调整' }),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByText('你想搭配什么场合？', { exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: '历史对话', exact: true }).click();
+  await page.screenshot({ path: '.artifacts/chat-history.png' });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: '历史对话', exact: true }).click();
+  await page
+    .locator('.ai-history-item')
+    .filter({ hasText: '明天上课，帮我搭一套。' })
+    .click();
+  await expect(
+    page.getByRole('button', { name: '查看这套搭配并调整' }),
+  ).toBeVisible();
+  if (stylingRequests !== 2)
+    throw new Error('History replay submitted another task');
   if (
     await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)
   )
     throw new Error('Horizontal overflow');
+  for (const size of [
+    { width: 320, height: 650 },
+    { width: 390, height: 500 },
+    { width: 430, height: 900 },
+    { width: 1024, height: 700 },
+  ]) {
+    await page.setViewportSize(size);
+    const composer = await page.locator('.ai-compose').boundingBox();
+    const dock = await page.locator('.muse-tabbar-dock').boundingBox();
+    if (!composer || !dock || composer.y + composer.height > dock.y)
+      throw new Error(
+        `Composer hidden by navigation at ${JSON.stringify(size)}`,
+      );
+    await page
+      .getByRole('button', { name: '新建对话', exact: true })
+      .click({ trial: true });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   if (errors.length || unknown.length)
     throw new Error(JSON.stringify({ errors, unknown }));
   await mkdir('.artifacts', { recursive: true });
   await page.screenshot({ path: '.artifacts/style-flow-chat.png' });
   console.log(
-    'PASS: native timeline, stable expansion, explicit adoption, refresh recovery, home card, try-on result, mine, inspiration. No provider calls.',
+    'PASS: native timeline, stable expansion, explicit adoption, refresh recovery, home card, try-on result, isolated conversation history, mobile layout, mine, inspiration. No provider calls.',
   );
 } catch (error) {
   console.error({ errors, unknown });

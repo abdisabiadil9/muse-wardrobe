@@ -1,11 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
 import { createApi, ApiError } from './api/client.ts';
 import {
   draftSlots,
   toOutfit,
   validateProposal,
   tryonRequest,
+  draftBody,
+  draftContent,
 } from './api/viewModels.ts';
 const wardrobe = [
   { id: 'coat-1', category: 'coat', image_asset_id: 'asset-1' },
@@ -39,6 +44,52 @@ const proposal = () => ({
   draft_revision: 4,
   slots: structuredClone(selected),
   garment_ids: ['coat-1', 'top-1'],
+});
+
+test('legacy canvas positions serialize against the real draft contract without losing layout', async () => {
+  const contract = JSON.parse(
+    await readFile(
+      new URL('../docs/contracts/openapi.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  const ajv = new Ajv2020({ strict: false });
+  addFormats(ajv);
+  const validate = ajv.compile({
+    ...contract.paths['/outfit-drafts/{scene}'].patch.requestBody.content[
+      'application/json'
+    ].schema,
+    components: contract.components,
+  });
+  const original = {
+    ...draft(),
+    slots: {},
+    canvas_layout: {
+      coat: { x: 28, y: 33, width: 47, rotation: -8 },
+      bag: { x: 29, y: 64, width: 28, rotation: -9, z_index: 7 },
+    },
+  };
+  const before = structuredClone(original);
+  assert.equal(
+    validate({
+      expected_revision: 4,
+      slots: {},
+      canvas_layout: original.canvas_layout,
+    }),
+    false,
+  );
+  const body = draftBody(original);
+  assert.equal(validate(body), true, JSON.stringify(validate.errors));
+  assert.equal(body.canvas_layout.bag.z_index, 7);
+  assert.deepEqual(body.canvas_layout.coat, {
+    ...original.canvas_layout.coat,
+    z_index: 0,
+  });
+  assert.deepEqual(original, before);
+  assert.equal(
+    draftContent(original),
+    draftContent({ ...original, canvas_layout: body.canvas_layout }),
+  );
 });
 
 test('empty API slots stay empty and never become demonstration wardrobe IDs', () => {

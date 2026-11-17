@@ -1,4 +1,5 @@
 import type { Scene, Task } from './api/client';
+import { newKey } from './api/client.ts';
 
 /** Public native event fields only. The renderer never infers event types from text. */
 export type NativeConversationEvent = {
@@ -90,6 +91,139 @@ export function readConversationRecord(
   } catch {
     return emptyRecord();
   }
+}
+
+export type ConversationThread = ConversationRecord & {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+};
+export type ConversationHistory = {
+  version: 2;
+  activeId: string;
+  threads: ConversationThread[];
+};
+export const conversationHistoryKey = (owner: string) =>
+  `muse-live:${owner}:conversation:v2`;
+export function newConversationThread(
+  id = newKey(),
+  now = new Date().toISOString(),
+): ConversationThread {
+  return {
+    ...emptyRecord(),
+    id,
+    title: '新对话',
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+export const conversationTitle = (message: string) =>
+  message.trim().replace(/\s+/g, ' ').slice(0, 24) || '新对话';
+
+/** Migrate the single transcript once; future new chats never inherit its context. */
+export function readConversationHistory(
+  storage: Pick<Storage, 'getItem'>,
+  owner: string,
+): ConversationHistory {
+  try {
+    const saved = JSON.parse(
+      storage.getItem(conversationHistoryKey(owner)) || 'null',
+    );
+    if (saved?.version === 2 && Array.isArray(saved.threads)) {
+      const seen = new Set<string>();
+      const threads: ConversationThread[] = saved.threads.flatMap(
+        (thread: ConversationThread) => {
+          if (
+            !thread ||
+            typeof thread.id !== 'string' ||
+            seen.has(thread.id) ||
+            !Array.isArray(thread.ids)
+          )
+            return [];
+          seen.add(thread.id);
+          const record = readConversationRecord(
+            { getItem: () => JSON.stringify(thread) },
+            owner,
+          );
+          const defaults = newConversationThread(thread.id);
+          return [
+            {
+              ...defaults,
+              ...record,
+              title: typeof thread.title === 'string' ? thread.title : '新对话',
+              createdAt:
+                typeof thread.createdAt === 'string'
+                  ? thread.createdAt
+                  : defaults.createdAt,
+              updatedAt:
+                typeof thread.updatedAt === 'string'
+                  ? thread.updatedAt
+                  : defaults.updatedAt,
+            },
+          ];
+        },
+      );
+      if (threads.length)
+        return {
+          version: 2,
+          activeId: threads.some((thread) => thread.id === saved.activeId)
+            ? saved.activeId
+            : threads[0].id,
+          threads,
+        };
+    }
+  } catch {
+    /* Fall back to the previous transcript if storage is malformed. */
+  }
+  const legacy = readConversationRecord(storage, owner);
+  for (const scene of ['daily', 'weekend', 'meeting']) {
+    try {
+      const task = JSON.parse(
+        storage.getItem(`muse-live:${owner}:task:styling:${scene}`) || 'null',
+      );
+      if (typeof task?.taskId === 'string' && !legacy.ids.includes(task.taskId))
+        legacy.ids.push(task.taskId);
+    } catch {
+      /* Ignore malformed legacy task metadata. */
+    }
+  }
+  const thread = { ...newConversationThread(), ...legacy };
+  thread.title = conversationTitle(
+    legacy.messages[legacy.ids[0]] ||
+      legacy.pending?.message ||
+      (legacy.ids.length ? '此前的搭配对话' : ''),
+  );
+  return { version: 2, activeId: thread.id, threads: [thread] };
+}
+
+/** Home cards need task origins from every thread, not just the open chat. */
+export function readConversationTaskIndex(
+  storage: Pick<Storage, 'getItem'>,
+  owner: string,
+) {
+  const { threads } = readConversationHistory(storage, owner);
+  return {
+    ids: [...new Set(threads.flatMap((thread) => thread.ids))],
+    contexts: Object.assign(
+      {},
+      ...threads.map((thread) => thread.contexts),
+    ) as Record<string, ConversationContext>,
+  };
+}
+
+/** Async results always update their originating thread, even after a history switch. */
+export function updateConversationThread(
+  history: ConversationHistory,
+  id: string,
+  update: (thread: ConversationThread) => ConversationThread,
+): ConversationHistory {
+  return {
+    ...history,
+    threads: history.threads.map((thread) =>
+      thread.id === id ? update(thread) : thread,
+    ),
+  };
 }
 export function eventText(event: NativeConversationEvent): string {
   return typeof event.content === 'string'

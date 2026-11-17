@@ -9,6 +9,7 @@ import sharp from 'sharp';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { createApp } from '../../apps/api/app.mjs';
+import { draftBody } from '../../src/api/viewModels.ts';
 import { Worker } from '../../apps/worker/runtime.mjs';
 import {
   migrate,
@@ -400,6 +401,47 @@ check(
     assert.equal(bytes.headers['content-type'], 'image/png');
     const unauth = await app.inject({ url: image.json().download_url });
     assert.equal(unauth.statusCode, 401);
+  },
+);
+
+check(
+  'edited legacy canvas can be persisted and saved as an outfit',
+  async () => {
+    const u = await user(),
+      g = await garment(u),
+      d = await draft(u, [g]);
+    const edited = {
+      ...d,
+      canvas_layout: { top: { x: 73, y: 23, width: 38, rotation: 7 } },
+    };
+    const updated = await request(
+      u,
+      'PATCH',
+      '/outfit-drafts/daily',
+      draftBody(edited),
+    );
+    assert.equal(updated.statusCode, 200, updated.body);
+    const accepted = updated.json();
+    assert.deepEqual(accepted.canvas_layout.top, {
+      ...edited.canvas_layout.top,
+      z_index: 0,
+    });
+    assert.deepEqual(accepted.slots, d.slots);
+    const saved = await request(
+      u,
+      'POST',
+      '/outfits',
+      {
+        draft_id: accepted.id,
+        draft_revision: accepted.revision,
+      },
+      randomUUID(),
+    );
+    assert.equal(saved.statusCode, 201, saved.body);
+    assert.deepEqual(
+      saved.json().snapshot.canvas_layout,
+      accepted.canvas_layout,
+    );
   },
 );
 

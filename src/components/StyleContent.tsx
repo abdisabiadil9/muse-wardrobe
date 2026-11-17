@@ -46,32 +46,38 @@ export function LookCollage({
   items: Garment[];
   renderItem: RenderItem;
 }) {
+  const pieces = slots.flatMap((slot) => {
+    const item = items.find((g) => g.id === look.slots[slot]?.ref_id);
+    return item ? [{ slot, item }] : [];
+  });
+  const hasLayout =
+    pieces.length > 0 && pieces.every(({ slot }) => look.layout?.[slot]);
   return (
-    <div className="content-collage">
-      {slots.map((slot) => {
-        const item = items.find((g) => g.id === look.slots[slot]?.ref_id);
-        return item ? (
-          <div
-            className={`content-piece content-${slot}`}
-            key={slot}
-            style={
-              look.layout?.[slot]
-                ? {
-                    left: `${look.layout[slot].x}%`,
-                    top: `${look.layout[slot].y}%`,
-                    right: 'auto',
-                    bottom: 'auto',
-                    width: `${look.layout[slot].width}%`,
-                    transform: `translate(-50%,-50%) rotate(${look.layout[slot].rotation}deg)`,
-                  }
-                : undefined
-            }
-          >
-            {renderItem(item)}
-          </div>
-        ) : null;
-      })}
-      {!Object.keys(look.slots).length && <Layers size={26} />}
+    <div
+      className={`content-collage${hasLayout ? ' has-layout' : ''}`}
+      data-piece-count={pieces.length}
+    >
+      {pieces.map(({ slot, item }) => (
+        <div
+          className={`content-piece content-${slot}`}
+          key={slot}
+          style={
+            hasLayout && look.layout?.[slot]
+              ? {
+                  left: `${look.layout[slot].x}%`,
+                  top: `${look.layout[slot].y}%`,
+                  right: 'auto',
+                  bottom: 'auto',
+                  width: `${look.layout[slot].width}%`,
+                  transform: `translate(-50%,-50%) rotate(${look.layout[slot].rotation}deg)`,
+                }
+              : undefined
+          }
+        >
+          {renderItem(item)}
+        </div>
+      ))}
+      {!pieces.length && <Layers size={26} />}
     </div>
   );
 }
@@ -102,7 +108,7 @@ function LookVisual({
       <LookCollage look={look} items={items} renderItem={renderItem} />
       {(look.kind === 'generated' || failed) && (
         <p className="content-image-unavailable">
-          上身图暂不可用 · 衣橱单品拼贴
+          上身图暂不可用 · 查看衣橱搭配
         </p>
       )}
     </>
@@ -134,7 +140,7 @@ export function LookGrid({
               : look.kind === 'proposal'
                 ? look.image?.download_url
                   ? 'AI 搭配 · 上身预览'
-                  : 'AI 搭配 · 单品拼贴'
+                  : 'Lumi 搭配 · 衣橱精选'
                 : '我的搭配'}
           </span>
           <strong>{look.title}</strong>
@@ -434,7 +440,7 @@ export function LookDetail({
       <LookVisual look={look} items={items} renderItem={renderItem} detail />
       <p className="content-eyebrow">
         {sceneLabels[look.scene]} ·{' '}
-        {look.image?.download_url ? 'AI 生成外观参考' : '衣橱单品拼贴'}
+        {look.image?.download_url ? 'AI 生成外观参考' : '衣橱搭配'}
       </p>
       <h1>{look.title}</h1>
       <p className="content-description">{look.reason}</p>

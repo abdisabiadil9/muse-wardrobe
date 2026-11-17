@@ -28,7 +28,7 @@ import { slotNames, type Garment, type Outfit, type Slot } from '../data';
 
 export type CanvasLayout = Record<
   Slot,
-  { x: number; y: number; width: number; rotation: number }
+  { x: number; y: number; width: number; rotation: number; z_index?: number }
 >;
 type Props = {
   initialMode?: 'dress' | 'canvas' | 'boards';
@@ -57,10 +57,7 @@ const categoryFor: Record<Slot, string> = {
   shoes: '鞋履',
   bag: '配饰',
 };
-const initialPositions: Record<
-  Slot,
-  { x: number; y: number; width: number; rotation: number }
-> = {
+const initialPositions: CanvasLayout = {
   coat: { x: 28, y: 33, width: 47, rotation: -8 },
   top: { x: 73, y: 23, width: 38, rotation: 7 },
   bottom: { x: 69, y: 62, width: 40, rotation: -3 },
@@ -476,7 +473,10 @@ export default function StyleStudio(p: Props) {
                       top: `${pos.y}%`,
                       width: `${pos.width}%`,
                       transform: `translate(-50%, -50%) rotate(${pos.rotation}deg)`,
-                      zIndex: focusSlot === slot ? 6 : slot === 'bag' ? 5 : 2,
+                      zIndex:
+                        focusSlot === slot
+                          ? 100
+                          : (pos.z_index ?? (slot === 'bag' ? 5 : 2)),
                     }}
                     onPointerDown={(e) => beginDrag(e, slot)}
                     onPointerMove={moveDrag}
