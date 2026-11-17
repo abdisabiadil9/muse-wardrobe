@@ -64,7 +64,7 @@ export class Worker {
               : {
                   code: error.code ?? 'task_failed',
                   message: uncertain
-                    ? '上游执行结果待确认，未自动重新执行'
+                    ? '未收到可确认的模型结果，未自动重新生成；查询状态只读取已保存的任务。'
                     : '任务未完成，请检查输入或稍后重试',
                   retryable: !uncertain,
                   request_id: error.requestId ?? error.request_id ?? task.id,
@@ -227,6 +227,9 @@ export class Worker {
             {
               code: error.code ?? 'upstream_error',
               request_id: error.requestId ?? error.request_id ?? null,
+              transport_code: error.transport_code ?? null,
+              provider_code: error.provider_code ?? null,
+              http_status: error.status ?? null,
             },
           ],
         ),

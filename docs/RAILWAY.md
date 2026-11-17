@@ -40,6 +40,7 @@ ARK_IMAGE_MODEL=doubao-seedream-5-5-261028
 TRYON_ENABLED=true
 MEMORY_ENABLED=false
 DREAM_ENABLED=false
+OUTBOUND_IPV4_ONLY=true
 ```
 
 `${{Postgres.DATABASE_URL}}` 中的 `Postgres` 必须与实际服务名一致，最好通过 Railway 的 Reference Variable 选择数据库变量。不要使用本机 `127.0.0.1:55432` 数据库地址。云端是新数据库，没有本地 Memory Store 绑定，因此先关闭 Memory；配置独立绑定后再启用。
@@ -86,3 +87,9 @@ API 把用户点击生成产生的任务写入数据库，然后立即返回 tas
 - Railway CLI 提示旧版 railway.json 配置将在 2026-12-01 停用；当前服务的健康检查、重启策略和单实例设置也已直接写入平台。后续维护时需按官方迁移指引迁移仓库配置。
 
 官方参考：[快速开始](https://docs.railway.com/quick-start)、[Variables](https://docs.railway.com/variables)、[PostgreSQL](https://docs.railway.com/databases/postgresql)、[Volumes](https://docs.railway.com/volumes)、[计费](https://docs.railway.com/pricing/plans)。
+
+## Seedream 网络排查
+
+2026-11-17 云端检查发现 Node 默认双栈连接访问 Ark 出现 ETIMEDOUT，启用 `OUTBOUND_IPV4_ONLY=true` 后无需密钥的连通性探测可收到 HTTP 401 和 request ID。该开关仅作用于 Worker，未改变模型或自动重试策略。网络探测不等于真实生成验收。
+
+生成响应先存入私有 `provider_operations.output`（checkpoint），含图片 URL、request_id 和用量，再下载到媒体磁盘；只有保存完才向前端展示图片。排查只查看状态和脱敏错误字段，不输出图片 data URL、签名 URL 或密钥。未知结果不自动重发，供应商请求编号不存在时不能用本地 task ID 冒充。

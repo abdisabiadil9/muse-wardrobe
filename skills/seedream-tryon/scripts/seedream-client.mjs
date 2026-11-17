@@ -34,7 +34,7 @@ export class SeedreamError extends Error {
   constructor(
     code,
     message,
-    { outcome = 'rejected', request_id, status, provider_code } = {},
+    { outcome = 'rejected', request_id, status, provider_code, transport_code } = {},
   ) {
     super(message);
     this.name = 'SeedreamError';
@@ -44,6 +44,7 @@ export class SeedreamError extends Error {
     if (request_id) this.request_id = request_id;
     if (status !== undefined) this.status = status;
     if (provider_code) this.provider_code = provider_code;
+    if (transport_code) this.transport_code = transport_code;
   }
 }
 
@@ -507,11 +508,12 @@ export class SeedreamAdapter {
           ? AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)])
           : AbortSignal.timeout(this.timeoutMs),
       });
-    } catch {
+    } catch (error) {
+      const transport_code = providerCode(error?.cause?.code || error?.code || error?.name);
       fail(
         'POST_OUTCOME_UNKNOWN',
         'Generation response was not received; do not automatically resubmit',
-        { outcome: 'unknown' },
+        { outcome: 'unknown', transport_code },
       );
     }
     const request_id =

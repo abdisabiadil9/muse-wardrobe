@@ -129,7 +129,7 @@ test('unknown POST is never automatically resent and does not leak thrown transp
     apiKey: 'test-key',
     fetchImpl: async () => {
       calls++;
-      throw new Error('sensitive transport details');
+      throw new Error('sensitive transport details', { cause: { code: 'ETIMEDOUT', message: 'private address' } });
     },
   });
   await assert.rejects(
@@ -137,6 +137,8 @@ test('unknown POST is never automatically resent and does not leak thrown transp
     (error) =>
       error instanceof SeedreamError &&
       error.outcome === 'unknown' &&
+      error.transport_code === 'ETIMEDOUT' &&
+      !JSON.stringify(error).includes('private address') &&
       !error.message.includes('sensitive') &&
       !error.retryable,
   );

@@ -61,13 +61,25 @@ export default function TaskStatus({
           </p>
           {task.status === 'unconfirmed' && (
             <p className="live-muted">
-              连接中断，生成可能已经发生。先查询状态；再次生成可能产生新的消耗。
+              {task.type === 'tryon'
+                ? '服务器尚未取得可确认的生成结果，不代表手机断网。查询仅刷新已保存的任务状态；若未收到图片地址，无法凭任务编号向模型取回图片。再次生成可能重复消耗。'
+                : '上游执行结果尚未确认。请先查询状态，再次生成可能产生新的消耗。'}
             </p>
           )}
           {task.status === 'failed' && (
             <p role="alert">
               {task.error?.message || '本次请求没有成功，现有搭配已保留。'}
             </p>
+          )}
+          {task.error && (
+            <details className="live-muted">
+              <summary>查看请求信息</summary>
+              <p>任务编号：{task.id}</p>
+              <p>错误码：{task.error.code}</p>
+              {task.error.request_id && task.error.request_id !== task.id && (
+                <p>模型请求编号：{task.error.request_id}</p>
+              )}
+            </details>
           )}
           {active && !task.cancel_requested_at && (
             <button className="text-link" onClick={() => void c.cancel()}>

@@ -1,4 +1,5 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { TabBar } from '@lenso/ui/tab-bar';
 import { Sheet } from '@lenso/ui/sheet';
 import { Button } from '@lenso/ui/button';
 import * as stylex from '@stylexjs/stylex';
@@ -12,6 +13,7 @@ const destinations = [
   { value: 'mine', label: '我的', Icon: UserRound },
 ] as const;
 const styles = stylex.create({
+  navigation: { width: '100%' },
   sheet: {
     width: { default: '100%', '@media (min-width: 761px)': '420px' },
     height: {
@@ -50,40 +52,58 @@ export function MobileTabBar({
   onNavigate: (page: Destination) => void;
   onAI?: () => void;
 }) {
-  const tabs = destinations.flatMap((tab, index) =>
-    onAI && index === 2
-      ? [{ value: 'ai', label: 'AI 搭配', Icon: Sparkles }, tab]
-      : [tab],
-  );
-  const activeIndex = tabs.findIndex((tab) => tab.value === current);
   return (
-    <div className="muse-tabbar-dock">
-      <nav
-        className="muse-tabbar"
+    <div className={`muse-tabbar-dock${onAI ? ' has-ai' : ''}`}>
+      <TabBar
         aria-label="主导航"
-        style={{ '--tab-count': tabs.length, '--tab-index': Math.max(0, activeIndex) } as CSSProperties}
+        layout="phone"
+        lift={8}
+        xstyle={styles.navigation}
       >
-        <span className="muse-tab-highlight" aria-hidden="true" hidden={activeIndex < 0} />
-        {tabs.map(({ value, label, Icon }) => (
-          <a
-            key={value}
-            href={`?screen=${value}`}
-            data-tab-bar-item=""
-            data-current={current === value ? '' : undefined}
-            aria-current={current === value ? 'page' : undefined}
-            onClick={(event) => {
-              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-              event.preventDefault();
-              if (value === current) return;
-              if (value === 'ai') onAI?.();
-              else onNavigate(value as Destination);
-            }}
-          >
-            <Icon size={22} strokeWidth={current === value ? 2 : 1.7} />
-            <span>{label}</span>
-          </a>
-        ))}
-      </nav>
+        <TabBar.Group>
+          {destinations.map(({ value, label, Icon }, index) => (
+            <span
+              className="muse-tab-entry"
+              style={{ display: 'contents' }}
+              key={value}
+            >
+              {onAI && index === 2 && (
+                <TabBar.Link
+                  href="?screen=ai"
+                  isCurrent={current === 'ai'}
+                  icon={
+                    <Sparkles
+                      className="muse-ai-tab-icon"
+                      size={22}
+                      strokeWidth={current === 'ai' ? 2 : 1.7}
+                    />
+                  }
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onAI();
+                  }}
+                >
+                  AI 搭配
+                </TabBar.Link>
+              )}
+              <TabBar.Link
+                key={value}
+                href={`?screen=${value}`}
+                isCurrent={current === value}
+                icon={
+                  <Icon size={22} strokeWidth={current === value ? 2 : 1.7} />
+                }
+                onClick={(event) => {
+                  event.preventDefault();
+                  onNavigate(value);
+                }}
+              >
+                {label}
+              </TabBar.Link>
+            </span>
+          ))}
+        </TabBar.Group>
+      </TabBar>
     </div>
   );
 }

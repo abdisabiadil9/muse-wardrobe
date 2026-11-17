@@ -1,3 +1,5 @@
+import { setDefaultAutoSelectFamily } from 'node:net';
+import { setDefaultResultOrder } from 'node:dns';
 import { createPool } from '../../packages/db/index.mjs';
 import { configFromEnv } from '../../packages/domain/config.mjs';
 import { PrivateMedia } from '../api/media.mjs';
@@ -5,6 +7,12 @@ import { ManagedQoder } from '../../packages/qoder/client.mjs';
 import { syncMemoryJobs } from '../../packages/qoder/memory.mjs';
 import { Worker } from './runtime.mjs';
 import { SeedreamAdapter } from '../../packages/seedream/index.mjs';
+// Some cloud networks fail the default IPv4/IPv6 connection race to Ark.
+// Opt in per deployment; no retries or changes to request semantics.
+if (process.env.OUTBOUND_IPV4_ONLY === 'true') {
+  setDefaultAutoSelectFamily(false);
+  setDefaultResultOrder('ipv4first');
+}
 const config = configFromEnv(process.env, { allowTeamDemo: true }),
   pool = createPool(config.databaseUrl);
 const qoder = config.qoderToken
