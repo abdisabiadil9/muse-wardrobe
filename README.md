@@ -1,5 +1,7 @@
 # MUSE · 从衣橱开始的今日搭配
 
+**[配置与启动](CONFIGURATION.md)** · **[Android APK](https://github.com/mistake-12/muse-wardrobe/releases)** · **[MIT License](LICENSE)**
+
 **组员首次运行：[电脑部署、密钥配置与 APK 安装](docs/TEAM_QUICKSTART.md)**
 
 面向手机的穿搭应用，使用 React、TypeScript、Vite 和 Lenso UI。当前交付为**可运行的本地开发版**：衣橱、三场景草稿、AI 搭配和图片试穿已连接业务 API 与后台 Worker。
@@ -69,4 +71,4 @@ public/assets/garments/       独立单品体验素材与裁切清单
 
 从功能分支提交 PR，说明接口、状态、异常处理和验证结果。GitHub Actions 不调用付费模型，也不会自动更新 Sites。真实配置、个人照片、带签名链接和运行日志不进入提交或分享包。
 
-第三方素材及组件许可见 [public/licenses](public/licenses/README.txt)。本仓库尚未额外授予自有代码与素材开源许可；公开开源前需确认授权。
+原创代码和文档采用 [MIT License](LICENSE)。第三方依赖和视觉素材的授权范围见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)，上游许可见 [public/licenses](public/licenses/README.txt)。真实密钥、私有照片和本机数据不随仓库发布。

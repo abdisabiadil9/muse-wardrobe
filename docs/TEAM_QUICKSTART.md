@@ -4,7 +4,7 @@
 
 ## 1. 获取代码
 
-仓库是私有仓库，先由仓库所有者在 Settings → Collaborators 中添加组员的 GitHub 账号。安装 Node.js 22.18+ 和 Docker Desktop，并启动 Docker。
+公开仓库可直接克隆；参与推送的组员由仓库所有者添加写入权限，其他人可通过 Fork 和 PR 贡献。安装 Node.js 22.18+ 和 Docker Desktop，并启动 Docker。
 
 ```sh
 git clone https://github.com/mistake-12/muse-wardrobe.git
@@ -75,7 +75,7 @@ Memory 的可选配置及手动 Dream 边界见 [本地指南](LOCAL_DEVELOPMENT
 
 ## 5. 安装 APK 并连接
 
-安装包位于仓库 [Releases](https://github.com/mistake-12/muse-wardrobe/releases) 的 Android 演示发布中，下载 `muse-demo-debug.apk`。私有仓库成员登录后才能下载。
+安装包位于仓库 [Releases](https://github.com/mistake-12/muse-wardrobe/releases) 的 Android 演示发布中，下载 `muse-demo-debug.apk`。公开发布可直接下载，无需仓库成员权限。
 
 1. 手机开热点，让电脑连接；也可让两台设备连接另一部手机的热点。
 2. 在项目目录运行 `npm run phone:setup`，记录脚本输出的电脑地址。
