@@ -4,18 +4,14 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.InputType;
-import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
-import android.view.inputmethod.InputMethodManager;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
@@ -29,10 +25,8 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.window.OnBackInvokedCallback;
@@ -45,20 +39,14 @@ public final class MainActivity extends Activity {
     private static final int PICK_IMAGE = 40;
     private static final int BACKGROUND = 0xFFFFFFFF;
     private static final int INK = 0xFF1C1C1E;
-    private static final String PREFS = "muse_demo";
-    private static final String SERVICE_URL = "service_url";
     private static final String DEFAULT_URL = "https://muse-web-production-eeb115cb.up.railway.app";
-    private static final String CLOUD_MIGRATED = "cloud_default_v2";
 
-    private SharedPreferences preferences;
     private volatile ServiceUrlPolicy service;
     private LinearLayout root;
     private FrameLayout content;
-    private TextView toolbarTitle;
     private TextView loading;
     private WebView webView;
     private View overlay;
-    private boolean editingAddress;
     private boolean pageFailed;
     private boolean destroyed;
     private ValueCallback<Uri[]> fileCallback;
@@ -67,26 +55,14 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        preferences = getSharedPreferences(PREFS, MODE_PRIVATE);
         buildLayout();
         if (Build.VERSION.SDK_INT >= 33) {
             backCallback = this::handleBack;
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
                     OnBackInvokedDispatcher.PRIORITY_DEFAULT, backCallback);
         }
-        // Move existing LAN demo installs to the cloud once; later manual overrides remain available.
-        if (!preferences.getBoolean(CLOUD_MIGRATED, false)) {
-            preferences.edit().putString(SERVICE_URL, DEFAULT_URL)
-                    .putBoolean(CLOUD_MIGRATED, true).apply();
-        }
-        String saved = preferences.getString(SERVICE_URL, DEFAULT_URL);
-        try {
-            service = ServiceUrlPolicy.parse(saved);
-            loadService();
-        } catch (IllegalArgumentException ignored) {
-            service = ServiceUrlPolicy.parse(DEFAULT_URL);
-            loadService();
-        }
+        service = ServiceUrlPolicy.parse(DEFAULT_URL);
+        loadService();
     }
 
     private void buildLayout() {
@@ -110,24 +86,6 @@ public final class MainActivity extends Activity {
             return insets;
         });
 
-        LinearLayout toolbar = new LinearLayout(this);
-        toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(dp(4), 0, dp(4), 0);
-        Button back = button(R.string.back);
-        back.setOnClickListener(view -> handleBack());
-        toolbar.addView(back, new LinearLayout.LayoutParams(dp(68), dp(48)));
-        toolbarTitle = text(R.string.app_name, 16);
-        toolbarTitle.setSingleLine(true);
-        toolbarTitle.setEllipsize(TextUtils.TruncateAt.END);
-        toolbar.addView(toolbarTitle, new LinearLayout.LayoutParams(0, dp(48), 1));
-        toolbarTitle.setGravity(Gravity.CENTER_VERTICAL);
-        Button address = button(R.string.change_address);
-        address.setOnClickListener(view -> showAddressEditor());
-        toolbar.addView(address, new LinearLayout.LayoutParams(dp(84), dp(48)));
-        root.addView(toolbar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
-        View divider = new View(this);
-        divider.setBackgroundColor(0xFFF2F2F7);
-        root.addView(divider, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
         content = new FrameLayout(this);
         root.addView(content, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
         setContentView(root);
@@ -168,7 +126,7 @@ public final class MainActivity extends Activity {
             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
                     FileChooserParams params) {
                 cancelFileChoice();
-                if (destroyed || editingAddress || params.getMode() != FileChooserParams.MODE_OPEN) {
+                if (destroyed || params.getMode() != FileChooserParams.MODE_OPEN) {
                     callback.onReceiveValue(null);
                     toast(R.string.image_only);
                     return true;
@@ -205,10 +163,8 @@ public final class MainActivity extends Activity {
 
     private void loadService() {
         if (service == null || destroyed) return;
-        editingAddress = false;
         cancelFileChoice();
         clearOverlay();
-        toolbarTitle.setText(service.getOrigin());
         if (!ensureWebView()) return;
         pageFailed = false;
         webView.setVisibility(View.VISIBLE);
@@ -220,59 +176,8 @@ public final class MainActivity extends Activity {
         webView.loadUrl(service.getUrl());
     }
 
-    private void showAddressEditor() {
-        if (destroyed) return;
-        cancelFileChoice();
-        editingAddress = true;
-        if (webView != null) {
-            webView.stopLoading();
-            webView.setVisibility(View.GONE);
-        }
-        clearOverlay();
-        toolbarTitle.setText(R.string.app_name);
-        ScrollView scroll = new ScrollView(this);
-        LinearLayout form = panel();
-        form.addView(text(R.string.address_title, 24));
-        addSpace(form, 16);
-        form.addView(text(R.string.address_help, 16));
-        addSpace(form, 20);
-        EditText input = new EditText(this);
-        input.setHint(R.string.address_hint);
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        input.setSingleLine(true);
-        input.setTextSize(16);
-        input.setText(service == null ? "" : service.getUrl());
-        input.setSelectAllOnFocus(true);
-        if (Build.VERSION.SDK_INT >= 26) input.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
-        form.addView(input, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
-        addSpace(form, 8);
-        form.addView(text(R.string.address_rules, 14));
-        addSpace(form, 20);
-        Button connect = button(R.string.connect);
-        connect.setOnClickListener(view -> {
-            try {
-                ServiceUrlPolicy next = ServiceUrlPolicy.parse(input.getText().toString());
-                if (service == null || !service.getOrigin().equals(next.getOrigin())) destroyWebView();
-                service = next;
-                preferences.edit().putString(SERVICE_URL, next.getUrl()).apply();
-                InputMethodManager keyboard = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-                if (keyboard != null) keyboard.hideSoftInputFromWindow(input.getWindowToken(), 0);
-                // Different origins receive a fresh WebView; same-origin path edits clear old history.
-                if (webView != null) webView.clearHistory();
-                loadService();
-            } catch (IllegalArgumentException invalid) {
-                input.setError(getString(R.string.invalid_address));
-            }
-        });
-        form.addView(connect, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
-        scroll.addView(form);
-        overlay = scroll;
-        content.addView(overlay, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    }
-
     private void showFailure(int message) {
-        if (destroyed || editingAddress) return;
+        if (destroyed) return;
         pageFailed = true;
         if (webView != null) {
             webView.stopLoading();
@@ -288,9 +193,6 @@ public final class MainActivity extends Activity {
         Button retry = button(R.string.retry);
         retry.setOnClickListener(view -> loadService());
         panel.addView(retry, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
-        Button address = button(R.string.change_address);
-        address.setOnClickListener(view -> showAddressEditor());
-        panel.addView(address, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
         overlay = panel;
         content.addView(overlay, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -354,7 +256,7 @@ public final class MainActivity extends Activity {
 
         @Override
         public void onPageFinished(WebView view, String url) {
-            if (!editingAddress && !pageFailed && service != null && service.isSameOrigin(url)) {
+            if (!pageFailed && service != null && service.isSameOrigin(url)) {
                 clearOverlay();
                 view.setVisibility(View.VISIBLE);
             }
@@ -386,7 +288,7 @@ public final class MainActivity extends Activity {
         if (callback == null) return;
         Uri chosen = data == null ? null : data.getData();
         boolean multiple = data != null && data.getClipData() != null && data.getClipData().getItemCount() > 1;
-        if (resultCode == RESULT_OK && !destroyed && !editingAddress && !multiple && chosen != null
+        if (resultCode == RESULT_OK && !destroyed && !multiple && chosen != null
                 && "content".equalsIgnoreCase(chosen.getScheme())) {
             try {
                 String mime = getContentResolver().getType(chosen);
@@ -450,9 +352,7 @@ public final class MainActivity extends Activity {
     }
 
     private void handleBack() {
-        if (editingAddress && service != null) {
-            loadService();
-        } else if (!editingAddress && !pageFailed && webView != null && webView.canGoBack()) {
+        if (!pageFailed && webView != null && webView.canGoBack()) {
             webView.goBack();
         } else {
             finish();

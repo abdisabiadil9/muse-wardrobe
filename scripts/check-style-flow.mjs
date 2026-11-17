@@ -196,7 +196,7 @@ await page.route('**/api/**', async (route) => {
     return route.fulfill({
       status: 200,
       contentType: 'text/event-stream',
-      body: ': fixture\n\n',
+      body: `id: ${Date.now()}\nevent: agent.events_updated\ndata: {}\n\n`,
     });
   if (path === '/tasks/style-fixture') return respond(route, task);
   if (path === '/tasks/image-fixture') return respond(route, imageTask);

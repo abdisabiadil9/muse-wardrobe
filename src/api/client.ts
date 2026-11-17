@@ -280,7 +280,7 @@ export function createApi(fetcher: typeof fetch = fetch) {
       taskId: string,
       cursor: number,
       signal: AbortSignal,
-      onEvent: (seq: number) => void,
+      onEvent: (seq: number, payload?: Record<string, unknown>) => void,
     ) {
       const response = await fetcher(
         `/api/v1/tasks/${encodeURIComponent(taskId)}/events`,
@@ -318,7 +318,19 @@ export function createApi(fetcher: typeof fetch = fetch) {
             const seq = Number(id[1]);
             if (seq > cursor) {
               cursor = seq;
-              onEvent(seq);
+              let payload: Record<string, unknown> | undefined;
+              try {
+                payload = JSON.parse(
+                  block
+                    .split('\n')
+                    .filter((line) => line.startsWith('data:'))
+                    .map((line) => line.slice(5).trimStart())
+                    .join('\n'),
+                );
+              } catch {
+                /* Snapshot recovery handles incomplete or unknown frames. */
+              }
+              onEvent(seq, payload);
             }
           }
         }

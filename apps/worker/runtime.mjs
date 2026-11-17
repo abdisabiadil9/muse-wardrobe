@@ -21,6 +21,7 @@ import {
   pendingCustomCalls,
 } from '../../server/reference/muse-tools.mjs';
 import { collectPages } from '../../packages/qoder/client.mjs';
+import { publicAgentEvent } from '../../packages/qoder/public-events.mjs';
 import { PROMPT_VERSION } from '../../packages/seedream/index.mjs';
 
 export class Worker {
@@ -237,6 +238,27 @@ export class Worker {
       throw error;
     }
   }
+  async storeAgentEvent(session, event) {
+    await transaction(this.pool, async (db) => {
+      const inserted = await db.query(
+        'INSERT INTO agent_events(session_id,event_id,payload) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING event_id',
+        [session.qoder_session_id, event.id, event],
+      );
+      if (inserted.rowCount) {
+        const call = event.custom_tool_use_id
+          ? await one(
+              db,
+              'SELECT payload FROM agent_events WHERE session_id=$1 AND event_id=$2',
+              [session.qoder_session_id, event.custom_tool_use_id],
+            )
+          : null;
+        const native_event = publicAgentEvent(event, call?.payload?.name);
+        await emitEvent(db, session.task_id, 'agent.events_updated', {
+          native_event,
+        });
+      }
+    });
+  }
   async history(session) {
     const events = await collectPages((page) =>
       this.qoder.listEvents(
@@ -244,11 +266,7 @@ export class Worker {
         typeof page === 'object' ? page : { page },
       ),
     );
-    for (const event of events)
-      await this.pool.query(
-        'INSERT INTO agent_events(session_id,event_id,payload) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',
-        [session.qoder_session_id, event.id, event],
-      );
+    for (const event of events) await this.storeAgentEvent(session, event);
     return events;
   }
   async styling(task) {
@@ -331,10 +349,7 @@ export class Worker {
         for await (const frame of connection.events) {
           const event = frame.data;
           if (!event?.id || !event?.type) continue;
-          await this.pool.query(
-            'INSERT INTO agent_events(session_id,event_id,payload) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',
-            [session.qoder_session_id, event.id, event],
-          );
+          await this.storeAgentEvent(session, event);
           inbox.push(event);
         }
       } catch (error) {

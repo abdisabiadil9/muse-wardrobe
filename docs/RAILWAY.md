@@ -93,3 +93,9 @@ API 把用户点击生成产生的任务写入数据库，然后立即返回 tas
 2026-11-17 云端检查发现 Node 默认双栈连接访问 Ark 出现 ETIMEDOUT，启用 `OUTBOUND_IPV4_ONLY=true` 后无需密钥的连通性探测可收到 HTTP 401 和 request ID。该开关仅作用于 Worker，未改变模型或自动重试策略。网络探测不等于真实生成验收。
 
 生成响应先存入私有 `provider_operations.output`（checkpoint），含图片 URL、request_id 和用量，再下载到媒体磁盘；只有保存完才向前端展示图片。排查只查看状态和脱敏错误字段，不输出图片 data URL、签名 URL 或密钥。未知结果不自动重发，供应商请求编号不存在时不能用本地 task ID 冒充。
+
+## 对话事件与 Agent 工具（2026-11-17）
+
+已实测公网 `/tasks/:id/events` 返回 `text/event-stream`、历史事件与持续心跳。Worker 直接订阅 Qoder 原生 SSE，完整事件先去重入库，再以 `agent.events_updated` 携带经过过滤的 `native_event` 推给前端，保留原始事件 ID、type 和工具关联；不暴露密钥、思考块或内置工具私有输出。前端直接合并事件，快照/历史用于补齐断线，15 秒低频轮询兜底。首次恢复与后台刷新分开，避免反复出现恢复提示。
+
+基础工具：Read、Write、Edit、Glob、Grep、Bash、WebFetch、WebSearch、ImageSearch，运行于 Qoder 沙箱；保留 read_wardrobe / propose_outfit。Seedream 试穿仍由应用执行，不额外启用 Qoder 图片/视频生成。配置升级可运行 `node scripts/qoder-update-tools.mjs` 预览，`--execute` 更新已有 Agent 并固定本机版本；随后将 Railway 的 QODER_AGENT_VERSION 同步为返回版本并部署。已有任务继续使用创建时的版本，不强行修改执行中的 Session。

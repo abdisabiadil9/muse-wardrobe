@@ -94,9 +94,78 @@ export function useConversation(api: Api, owner: string) {
   const idKey = history.threads.flatMap((thread) => thread.ids).join(",");
   useEffect(() => {
     const controller = new AbortController();
-    let polling = false;
+    let polling = false,
+      syncAgain = false;
+    let notificationTimer: ReturnType<typeof setTimeout> | undefined;
+    const retries = new Set<ReturnType<typeof setTimeout>>();
+    const streams = new Map<string, AbortController>();
+    const retryAt = new Map<string, number>();
+    const sequences = new Map<string, number>();
+    const notify = () => {
+      if (notificationTimer) return;
+      notificationTimer = setTimeout(() => {
+        notificationTimer = undefined;
+        void sync();
+      }, 120);
+    };
+    const manageStreams = () => {
+      const active = historyRef.current.threads.find(
+        (t) => t.id === historyRef.current.activeId,
+      );
+      const ids =
+        document.visibilityState === "visible"
+          ? (active?.ids || [])
+              .filter(
+                (id) =>
+                  tasksRef.current[id] && taskIsWorking(tasksRef.current[id]),
+              )
+              .slice(-2)
+          : [];
+      for (const [id, stream] of streams)
+        if (!ids.includes(id)) {
+          stream.abort();
+          streams.delete(id);
+        }
+      for (const id of ids) {
+        if (streams.has(id) || (retryAt.get(id) || 0) > Date.now()) continue;
+        const stream = new AbortController();
+        streams.set(id, stream);
+        void api
+          .stream(id, sequences.get(id) || 0, stream.signal, (seq, payload) => {
+            const event = payload?.native_event as
+              NativeConversationEvent | undefined;
+            if (
+              event &&
+              typeof event.id === "string" &&
+              typeof event.type === "string"
+            ) {
+              eventsRef.current = {
+                ...eventsRef.current,
+                [id]: mergeNativeEvents(eventsRef.current[id] || [], [event]),
+              };
+              setEvents(eventsRef.current);
+            }
+            sequences.set(id, seq);
+            notify();
+          })
+          .catch(() => {
+            /* Snapshot reads remain available on mobile disconnects. */
+          })
+          .finally(() => {
+            if (streams.get(id) === stream) streams.delete(id);
+            retryAt.set(id, Date.now() + 3000);
+            if (!controller.signal.aborted && !stream.signal.aborted) {
+              const retry = setTimeout(() => {
+                retries.delete(retry);
+                void sync();
+              }, 3100);
+              retries.add(retry);
+            }
+          });
+      }
+    };
     const refreshOne = async (id: string) => {
-      incompleteReads.current.add(id);
+      if (!tasksRef.current[id]) incompleteReads.current.add(id);
       const task = await api.get<ConversationTask>(
         `/tasks/${encodeURIComponent(id)}`,
         controller.signal,
@@ -128,7 +197,11 @@ export function useConversation(api: Api, owner: string) {
       if (!more) incompleteReads.current.delete(id);
     };
     const sync = async (all = false) => {
-      if (polling || controller.signal.aborted) return;
+      if (controller.signal.aborted) return;
+      if (polling) {
+        syncAgain = true;
+        return;
+      }
       polling = true;
       try {
         const ids = [
@@ -159,25 +232,36 @@ export function useConversation(api: Api, owner: string) {
         }
       } finally {
         polling = false;
+        if (!controller.signal.aborted) {
+          manageStreams();
+          if (syncAgain) {
+            syncAgain = false;
+            notify();
+          }
+        }
       }
     };
     syncRef.current = () => sync(true);
     void sync(true);
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void sync();
-    }, 1200);
+    }, 15000);
     const reconnect = () => {
+      manageStreams();
       if (document.visibilityState === "visible") void sync(true);
     };
     window.addEventListener("online", reconnect);
     document.addEventListener("visibilitychange", reconnect);
     return () => {
       controller.abort();
+      for (const stream of streams.values()) stream.abort();
+      clearTimeout(notificationTimer);
+      for (const retry of retries) clearTimeout(retry);
       clearInterval(timer);
       window.removeEventListener("online", reconnect);
       document.removeEventListener("visibilitychange", reconnect);
     };
-  }, [api, owner, idKey, acceptTask]);
+  }, [api, owner, idKey, history.activeId, acceptTask]);
   const dispatch = async (pending: PendingMessage, threadId: string) => {
     if (busy.current.has(threadId)) return;
     const requestOwner = owner;
@@ -362,9 +446,9 @@ export function useConversation(api: Api, owner: string) {
     send,
     recover,
     cancel,
-    loading: record.ids.some(
-      (id) => !tasks[id] || incompleteReads.current.has(id),
-    ),
+    loading:
+      !errors[record.id] &&
+      record.ids.some((id) => !tasks[id] || incompleteReads.current.has(id)),
     empty: !record.ids.length && !record.pending,
   };
 }

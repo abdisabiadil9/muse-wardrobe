@@ -1300,3 +1300,19 @@ class FakeMemory {
     };
   }
 }
+
+check('native SSE envelopes are durable, redacted and deduplicated', async () => {
+  const u = await user();
+  const d = (await request(u, 'GET', '/outfit-drafts/daily')).json();
+  const taskId = await stylingTask(u, d);
+  await pool.query("UPDATE tasks SET status='cancelled' WHERE id=$1", [taskId]);
+  const session = {task_id:taskId, qoder_session_id:'sess_'+taskId};
+  await pool.query('INSERT INTO agent_sessions(task_id,owner_id,qoder_session_id,agent_version) VALUES($1,$2,$3,1)',[taskId,u.id,session.qoder_session_id]);
+  const event = {id:'evt_native',type:'agent.message',content:[{type:'thinking',text:'private thought'},{type:'text',text:'可以搭配这件外套'}]};
+  await worker().storeAgentEvent(session,event);
+  await worker().storeAgentEvent(session,event);
+  const rows = await all(pool,"SELECT payload FROM task_events WHERE task_id=$1 AND type='agent.events_updated'",[taskId]);
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].payload.native_event.type,'agent.message');
+  assert.deepEqual(rows[0].payload.native_event.content,[{type:'text',text:'可以搭配这件外套'}]);
+});
