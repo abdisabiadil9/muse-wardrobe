@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MUSE演示</string>
+    <string name="app_name">MUSE 云端</string>
     <string name="loading">正在连接 MUSE…</string>
     <string name="network_title">暂时连接不上 MUSE</string>
     <string name="network_help">请检查手机网络，稍后重试。若浏览器也无法打开 MUSE，请联系演示管理员检查云端服务。</string>

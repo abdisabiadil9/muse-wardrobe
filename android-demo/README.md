@@ -31,3 +31,9 @@ gradle -p android-demo testDebugUnitTest lintDebug assembleDebug --no-daemon
 纯 Java JUnit 覆盖 HTTPS、局域网 HTTP、localhost、非法协议/账号/片段/端口、非私网 HTTP、同源判定和安全外链。`lintDebug` 与 `assembleDebug` 应由 CI 一起执行。
 
 构建成功后仍需在实体 Android 手机验收：安装和首次连通、系统栏无遮挡、衣橱图片上传/取消、旋转屏幕后选择回调安全、断网重试、重启直达云端、系统返回和外链行为。编译与单元测试通过不能替代这些真机验证。
+
+## 识别当前安装包
+
+0.4 起应用名称为「MUSE 云端」，下载文件名包含版本号。Android 应用信息中应显示 `0.4-cloud-debug`；仍显示旧版本或顶部「改地址」时，说明旧安装包尚未替换。云端网页更新无法删除旧 APK 内置的原生工具栏。
+
+若安装提示签名冲突，请先卸载旧「MUSE演示」再安装新包；卸载会清除本机记录，云端衣橱保留。
