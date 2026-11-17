@@ -5,7 +5,7 @@ import { ManagedQoder } from '../../packages/qoder/client.mjs';
 import { syncMemoryJobs } from '../../packages/qoder/memory.mjs';
 import { Worker } from './runtime.mjs';
 import { SeedreamAdapter } from '../../packages/seedream/index.mjs';
-const config = configFromEnv(process.env),
+const config = configFromEnv(process.env, { allowTeamDemo: true }),
   pool = createPool(config.databaseUrl);
 const qoder = config.qoderToken
   ? new ManagedQoder({ accessToken: config.qoderToken })

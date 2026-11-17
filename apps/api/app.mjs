@@ -43,7 +43,7 @@ export async function createApp({ pool, media: providedMedia, ...config }) {
       root: config.mediaRoot ?? '.local/media',
       secret: config.sessionSecret,
     });
-  if (config.devAuth && config.production)
+  if (config.devAuth && config.production && !config.teamDemo)
     throw new Error('Development identity is prohibited in production');
   const contract = JSON.parse(
     await readFile(

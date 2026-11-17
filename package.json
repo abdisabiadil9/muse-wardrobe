@@ -10,6 +10,7 @@
     "test": "node scripts/run-tests.mjs",
     "check": "npm test && npm run build",
     "dev:full": "node scripts/dev-full.mjs",
+    "start:demo": "node scripts/start-demo.mjs",
     "api": "node --env-file=.env apps/api/main.mjs",
     "worker": "node --env-file=.env apps/worker/main.mjs",
     "db:migrate": "node --env-file=.env packages/db/migrate.mjs",

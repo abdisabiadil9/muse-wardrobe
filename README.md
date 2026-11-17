@@ -22,6 +22,10 @@
 
 公开 Sites 地址仍是独立的静态交互演示。真实 OIDC 登录、生产对象存储、商品数据源、自动识别、Decart 实时视频及生产发布尚待完成；开发启动会拒绝 `NODE_ENV=production`。生成图用于外观参考，不判断尺码。
 
+## Railway 组内 MVP
+
+仓库已提供 Dockerfile、健康检查和带口令的独立云端启动入口。配置 PostgreSQL、`/data` 持久卷与服务端变量后部署，具体见 **[Railway 注册与部署步骤](docs/RAILWAY.md)**。这是共用衣橱的封闭演示，不是正式多人账户版本。尚未在 Railway 账号内完成首次部署。
+
 ## 本地启动
 
 需要 Node.js 22.18+（推荐 `.nvmrc` 的 Node 22）和运行中的 Docker Desktop。项目也已在本机 Node 24 上联调。

@@ -1,5 +1,7 @@
 # MUSE 配置与启动
 
+云端组内 MVP 请使用 [Railway 部署指南](docs/RAILWAY.md)，不要直接把下方本机数据库地址复制到云端。
+
 ## 首次运行
 
 安装 Node.js 22.18+ 和 Docker Desktop，启动 Docker 后执行：
