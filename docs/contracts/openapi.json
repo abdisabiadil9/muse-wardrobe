@@ -49,6 +49,9 @@
                     },
                     "dream": {
                       "type": "boolean"
+                    },
+                    "inspiration": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -2849,7 +2852,7 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Inspiration"
+                        "$ref": "#/components/schemas/InspirationNote"
                       }
                     },
                     "next_cursor": {
@@ -2857,6 +2860,16 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "fetched_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "stale": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -2941,26 +2954,14 @@
         },
         "parameters": [
           {
-            "name": "cursor",
+            "name": "style_id",
             "in": "query",
-            "required": false,
             "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "default": 20
+              "type": "string",
+              "default": "city"
             }
           }
-        ],
-        "security": []
+        ]
       }
     },
     "/products": {
@@ -4665,6 +4666,284 @@
           }
         }
       }
+    },
+    "/inspiration-tasks": {
+      "post": {
+        "operationId": "createInspirationTask",
+        "summary": "按需获取小红书图文；先查缓存，受月度和用户额度限制",
+        "responses": {
+          "202": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "需要登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在或无权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本/幂等冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "内容不满足业务约束",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流或额度不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务未配置或暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "enum": [
+                      "search",
+                      "note"
+                    ]
+                  },
+                  "style_id": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "keyword": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "url": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspiration-tasks/{id}/reconcile": {
+      "post": {
+        "operationId": "reconcileInspirationTask",
+        "summary": "只核对原请求或原异步任务，不重新调用采集",
+        "responses": {
+          "202": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "需要登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "不存在或无权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本/幂等冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "内容不满足业务约束",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "限流或额度不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务未配置或暂不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/style-library": {
+      "get": {
+        "operationId": "listStyleDefinitions",
+        "summary": "12 张免费复用的编辑风格定义",
+        "responses": {
+          "200": {
+            "description": "风格库",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/StyleDefinition"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5398,7 +5677,8 @@
               "styling",
               "tryon",
               "garment_extract",
-              "account_deletion"
+              "account_deletion",
+              "inspiration"
             ]
           },
           "status": {
@@ -5445,6 +5725,12 @@
               },
               {
                 "$ref": "#/components/schemas/AccountDeletionResult"
+              },
+              {
+                "$ref": "#/components/schemas/InspirationResult"
+              },
+              {
+                "$ref": "#/components/schemas/ProductSearchResult"
               },
               {
                 "type": "null"
@@ -5698,6 +5984,289 @@
         },
         "required": [
           "deleted_at"
+        ],
+        "additionalProperties": false
+      },
+      "InspirationNote": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "images": {
+            "type": "array",
+            "maxItems": 12,
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "const": "xiaohongshu"
+          },
+          "is_summary": {
+            "type": "boolean"
+          },
+          "is_video": {
+            "type": "boolean"
+          },
+          "sponsored": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "title",
+          "text",
+          "images",
+          "author",
+          "tags",
+          "source",
+          "is_summary",
+          "is_video",
+          "sponsored"
+        ],
+        "additionalProperties": false
+      },
+      "InspirationResult": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "inspiration_result"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InspirationNote"
+            }
+          },
+          "fetched_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cached": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "data",
+          "fetched_at",
+          "cached"
+        ],
+        "additionalProperties": false
+      },
+      "StyleDefinition": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "silhouette": {
+            "type": "string"
+          },
+          "formula": {
+            "type": "string"
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "palette": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "colors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pieces": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "occasions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "subtitle",
+          "description",
+          "silhouette",
+          "formula",
+          "keyword",
+          "palette",
+          "colors",
+          "pieces",
+          "occasions",
+          "tags"
+        ],
+        "additionalProperties": false
+      },
+      "ProductReference": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]{5,20}$"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "maxItems": 3
+          },
+          "price": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "currency": {
+            "enum": [
+              "CNY",
+              null
+            ]
+          },
+          "price_basis": {
+            "enum": [
+              "page",
+              "list",
+              "promotion",
+              null
+            ]
+          },
+          "shop_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_tmall": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "listed_price_in_range": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "source": {
+            "const": "taobao"
+          },
+          "owned": {
+            "const": false
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "title",
+          "images",
+          "price",
+          "currency",
+          "price_basis",
+          "shop_name",
+          "is_tmall",
+          "listed_price_in_range",
+          "source",
+          "owned"
+        ],
+        "additionalProperties": false
+      },
+      "ProductSearchResult": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "product_search_result"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductReference"
+            },
+            "maxItems": 5
+          },
+          "query": {
+            "type": "string"
+          },
+          "fetched_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cached": {
+            "type": "boolean"
+          },
+          "price_notice": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "data",
+          "query",
+          "fetched_at",
+          "cached",
+          "price_notice"
         ],
         "additionalProperties": false
       }

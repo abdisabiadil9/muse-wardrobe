@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import { publicAgentEvent } from './public-events.mjs';
 
 test('public native events hide internal envelopes, reasoning and unknown tools', () => {
-  assert.equal(publicAgentEvent({ id: 'evt_unknown', type: '__proto__' }), null);
+  assert.equal(
+    publicAgentEvent({ id: 'evt_unknown', type: '__proto__' }),
+    null,
+  );
   assert.equal(
     publicAgentEvent({
       id: 'evt_hidden',

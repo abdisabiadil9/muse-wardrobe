@@ -29,6 +29,7 @@ import {
 import { PrivateMedia } from './media.mjs';
 import { PROMPT_VERSION } from '../../packages/seedream/index.mjs';
 import { publicAgentEvent } from '../../packages/qoder/public-events.mjs';
+import { registerInspirationRoutes } from '../../packages/inspiration/routes.mjs';
 
 const DEV_USER = '00000000-0000-4000-8000-000000000001';
 export async function createApp({ pool, media: providedMedia, ...config }) {
@@ -172,17 +173,15 @@ export async function createApp({ pool, media: providedMedia, ...config }) {
   app.setErrorHandler((error, req, reply) => {
     const status = error.status ?? error.statusCode ?? 500;
     const safe = error instanceof AppError || status < 500;
-    reply
-      .code(status)
-      .send({
-        error: {
-          code: safe ? (error.code ?? 'invalid_request') : 'internal_error',
-          message: safe ? error.message : '服务暂时不可用',
-          retryable: error.retryable ?? status >= 500,
-          request_id: req.id,
-          ...(error.details ? { details: error.details } : {}),
-        },
-      });
+    reply.code(status).send({
+      error: {
+        code: safe ? (error.code ?? 'invalid_request') : 'internal_error',
+        message: safe ? error.message : '服务暂时不可用',
+        retryable: error.retryable ?? status >= 500,
+        request_id: req.id,
+        ...(error.details ? { details: error.details } : {}),
+      },
+    });
   });
   const route = (method, url, handler, opts = {}) =>
     app.route({ method, url: '/api/v1' + url, ...opts, handler });
@@ -226,6 +225,7 @@ export async function createApp({ pool, media: providedMedia, ...config }) {
     realtime_tryon: false,
     memory: Boolean(config.memoryEnabled),
     dream: Boolean(config.dreamEnabled),
+    inspiration: Boolean(config.inspirationEnabled),
   }));
   route('GET', '/me', async (req) => ({
     id: req.user.id,
@@ -1020,7 +1020,7 @@ export async function createApp({ pool, media: providedMedia, ...config }) {
     ),
   );
   route('GET', '/products', async () => ({ data: [], next_cursor: null }));
-  route('GET', '/inspirations', async () => ({ data: [], next_cursor: null }));
+  registerInspirationRoutes({ route, pool, config, idempotent, validate });
   route('POST', '/garment-extraction-tasks', async () =>
     fail(503, 'extraction_unconfigured', '请手动填写衣物信息'),
   );

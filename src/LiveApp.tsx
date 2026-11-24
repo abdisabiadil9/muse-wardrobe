@@ -20,7 +20,6 @@ import { MobileTabBar, WardrobeSheet } from './components/MobileChrome';
 import AIConversation from './components/AIConversation';
 import { readConversationTaskIndex } from './conversation';
 import {
-  InspirationPage,
   MyStylePage,
   LookDetail,
   LookGrid,
@@ -28,6 +27,7 @@ import {
   type LookCard,
 } from './components/StyleContent';
 import LiveTryOn from './components/LiveTryOn';
+import InspirationLibrary from './components/InspirationLibrary';
 import LiveGarmentImage from './components/LiveGarmentImage';
 import {
   ApiError,
@@ -801,6 +801,11 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
         if (task.status !== 'succeeded' || !task.result) return [];
         const result = task.result;
         if (
+          result.kind === 'inspiration_result' ||
+          result.kind === 'product_search_result'
+        )
+          return [];
+        if (
           result.kind === 'tryon_result' &&
           ['deleting', 'deleted'].includes(result.result_asset.status)
         )
@@ -1240,7 +1245,10 @@ export default function LiveApp({ api, me, capabilities, onDemo }: Props) {
       );
     if (page === 'discover')
       return (
-        <InspirationPage
+        <InspirationLibrary
+          api={api}
+          owner={me.id}
+          enabled={Boolean(capabilities.inspiration)}
           key={inspirationFilter}
           initialFilter={inspirationFilter}
           favorites={inspirationFavorites}

@@ -10,14 +10,21 @@ const fields = {
   'session.status_idle': ['stop_reason'],
   'session.status_terminated': [],
 };
-const businessTools = new Set(['read_wardrobe', 'propose_outfit']);
+const businessTools = new Set([
+  'read_wardrobe',
+  'propose_outfit',
+  'get_style_definition',
+  'search_inspirations',
+  'read_inspiration_note',
+  'search_products',
+]);
 const privateKey =
   /(?:authorization|credential|password|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|cookie|environment|thinking|reasoning)/i;
 const redact = (text) =>
   text
     .slice(0, 16384)
     .replace(/\bBearer\s+[^\s"']+/gi, 'Bearer [redacted]')
-    .replace(/\b(?:sk|pat|sat)[-_][A-Za-z0-9_-]{12,}/g, '[redacted]')
+    .replace(/\b(?:sk|pat|sat|ei)[-_][A-Za-z0-9_-]{12,}/g, '[redacted]')
     .replace(
       /((?:api[_-]?key|access[_-]?token|password|secret)\s*[=:]\s*)[^\s,;"']+/gi,
       '$1[redacted]',
@@ -55,7 +62,11 @@ function content(blocks) {
     });
 }
 export function publicAgentEvent(event, customToolName) {
-  if (!event || typeof event.id !== 'string' || !Object.hasOwn(fields, event.type))
+  if (
+    !event ||
+    typeof event.id !== 'string' ||
+    !Object.hasOwn(fields, event.type)
+  )
     return null;
   const result = { id: event.id, type: event.type };
   for (const key of ['session_id', 'session_thread_id', 'processed_at'])

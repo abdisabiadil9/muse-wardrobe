@@ -193,7 +193,7 @@ API 基础前缀 `/api/v1`。公开字段以 [OpenAPI v1.1](contracts/openapi.js
 | POST /tryon-tasks                                                       | single/outfit，固定人物与服装快照，返回 202                                                     |
 | GET /tasks/{id}；GET /tasks/{id}/events                                 | 快照与独立应用 SSE，可恢复                                                                      |
 | POST /tasks/{id}/cancel；POST /tasks/{id}/messages                      | 持久取消意图、needs_input 补答；终态/活动 turn 不接受补答                                       |
-| GET /inspirations；GET /products                                        | 当前返回空列表；真实数据源未接入，另有明确标记的静态演示                                        |
+| GET /inspirations；GET /products | 灵感读取共享缓存，配套 POST /inspiration-tasks 与 Agent 工具见 [灵感接入](INSPIRATION_LIBRARY.md)；商品接口仍为空列表 |
 | POST /wear-feedback；DELETE /wear-feedback/{id}；GET/PATCH /preferences | 确认记录与同步/删除意图；完整设置界面尚待补齐                                                   |
 | POST /garment-extraction-tasks；POST /tryon/client-token                | 保留接口，分别返回识别/实时视频未配置                                                           |
 

@@ -43,7 +43,7 @@ function start(name, args) {
   const env = { ...process.env };
   if (name === 'Web')
     for (const key of Object.keys(env))
-      if (/^(QODER_|ARK_|SESSION_SECRET|DATABASE_URL)/.test(key))
+      if (/^(QODER_|ARK_|EVERYINFRA_|SESSION_SECRET|DATABASE_URL)/.test(key))
         delete env[key];
   const child = spawn(process.execPath, args, { stdio: 'inherit', env });
   children.push(child);

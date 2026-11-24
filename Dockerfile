@@ -4,6 +4,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY index.html tsconfig*.json vite.config.ts ./
 COPY src ./src
+COPY packages/inspiration/styles.json ./packages/inspiration/styles.json
 COPY public ./public
 RUN npm run build
 

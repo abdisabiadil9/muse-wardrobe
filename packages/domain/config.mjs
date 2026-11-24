@@ -28,6 +28,11 @@ export function configFromEnv(env, { allowTeamDemo = false } = {}) {
     memoryEnabled: env.MEMORY_ENABLED === "true",
     dreamEnabled: env.DREAM_ENABLED === "true",
     dailyTaskLimit: Number(env.DAILY_TASK_LIMIT ?? 50),
+    everyinfraKey: env.EVERYINFRA_API_KEY,
+    inspirationSearchLimit: Number(env.EVERYINFRA_MONTHLY_SEARCH_LIMIT ?? 1000),
+    inspirationNoteLimit: Number(env.EVERYINFRA_MONTHLY_NOTE_LIMIT ?? 200),
+    inspirationDailyLimit: Number(env.EVERYINFRA_DAILY_USER_LIMIT ?? 20),
+    productSearchLimit: Number(env.EVERYINFRA_MONTHLY_TAOBAO_SEARCH_LIMIT ?? 100),
   };
   config.appOrigins = [
     ...new Set([
@@ -38,6 +43,15 @@ export function configFromEnv(env, { allowTeamDemo = false } = {}) {
         .filter(Boolean),
     ]),
   ];
+  config.inspirationEnabled = Boolean(config.everyinfraKey);
+  for (const key of [
+    "inspirationSearchLimit",
+    "inspirationNoteLimit",
+    "inspirationDailyLimit",
+    "productSearchLimit",
+  ])
+    if (!Number.isInteger(config[key]) || config[key] < 0)
+      throw new Error(`${key} must be a non-negative integer`);
   config.stylingEnabled = Boolean(
     config.qoderToken && config.agentId && config.environmentId,
   );

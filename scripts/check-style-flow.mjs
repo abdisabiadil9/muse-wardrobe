@@ -249,6 +249,13 @@ await page.route('**/api/**', async (route) => {
     };
     return respond(route, { task_id: imageTask.id, status: 'queued' }, 202);
   }
+  if (path === '/inspirations')
+    return respond(route, {
+      data: [],
+      fetched_at: null,
+      stale: true,
+      next_cursor: null,
+    });
   unknown.push(`${method} ${path}`);
   return respond(
     route,
@@ -459,10 +466,9 @@ try {
     .locator('.muse-tabbar-dock')
     .getByRole('link', { name: '灵感', exact: true })
     .click();
-  await expect(page.locator('.inspiration-image')).toHaveCount(3);
-  await page.locator('.inspiration-image').first().click();
+  await expect(page.locator('.inspo-style-rail button')).toHaveCount(12);
   await page
-    .getByRole('button', { name: '用这个灵感搭配', exact: true })
+    .getByRole('button', { name: '用我的衣橱搭这套风格', exact: true })
     .click();
   await expect(
     page.getByRole('textbox', { name: '告诉 Lumi 你的穿搭想法' }),
@@ -550,14 +556,19 @@ try {
   // Interrupt pending page transitions: the last intent and selected tab must agree.
   await page.evaluate(async () => {
     for (const screen of ['closet', 'discover', 'ai', 'today', 'mine']) {
-      document.querySelector(`.muse-tabbar-dock a[href="?screen=${screen}"]`).click();
+      document
+        .querySelector(`.muse-tabbar-dock a[href="?screen=${screen}"]`)
+        .click();
       await new Promise((resolve) => setTimeout(resolve, 16));
     }
   });
   await expect(page.locator('.app-content')).toHaveClass(/page-mine/);
-  await expect(page.locator('.muse-tabbar-dock a[href="?screen=mine"]'))
-    .toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('.muse-tabbar-dock a[aria-current="page"]')).toHaveCount(1);
+  await expect(
+    page.locator('.muse-tabbar-dock a[href="?screen=mine"]'),
+  ).toHaveAttribute('aria-current', 'page');
+  await expect(
+    page.locator('.muse-tabbar-dock a[aria-current="page"]'),
+  ).toHaveCount(1);
   if (errors.length || unknown.length)
     throw new Error(JSON.stringify({ errors, unknown }));
   console.log(

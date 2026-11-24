@@ -41,6 +41,11 @@ TRYON_ENABLED=true
 MEMORY_ENABLED=false
 DREAM_ENABLED=false
 OUTBOUND_IPV4_ONLY=true
+EVERYINFRA_API_KEY=填入EveryInfra服务端密钥
+EVERYINFRA_MONTHLY_SEARCH_LIMIT=1000
+EVERYINFRA_MONTHLY_NOTE_LIMIT=200
+EVERYINFRA_MONTHLY_TAOBAO_SEARCH_LIMIT=100
+EVERYINFRA_DAILY_USER_LIMIT=20
 ```
 
 `${{Postgres.DATABASE_URL}}` 中的 `Postgres` 必须与实际服务名一致，最好通过 Railway 的 Reference Variable 选择数据库变量。不要使用本机 `127.0.0.1:55432` 数据库地址。云端是新数据库，没有本地 Memory Store 绑定，因此先关闭 Memory；配置独立绑定后再启用。
@@ -99,3 +104,13 @@ API 把用户点击生成产生的任务写入数据库，然后立即返回 tas
 已实测公网 `/tasks/:id/events` 返回 `text/event-stream`、历史事件与持续心跳。Worker 直接订阅 Qoder 原生 SSE，完整事件先去重入库，再以 `agent.events_updated` 携带经过过滤的 `native_event` 推给前端，保留原始事件 ID、type 和工具关联；不暴露密钥、思考块或内置工具私有输出。前端直接合并事件，快照/历史用于补齐断线，15 秒低频轮询兜底。首次恢复与后台刷新分开，避免反复出现恢复提示。
 
 基础工具：Read、Write、Edit、Glob、Grep、Bash、WebFetch、WebSearch、ImageSearch，运行于 Qoder 沙箱；保留 read_wardrobe / propose_outfit。Seedream 试穿仍由应用执行，不额外启用 Qoder 图片/视频生成。配置升级可运行 `node scripts/qoder-update-tools.mjs` 预览，`--execute` 更新已有 Agent 并固定本机版本；随后将 Railway 的 QODER_AGENT_VERSION 同步为返回版本并部署。已有任务继续使用创建时的版本，不强行修改执行中的 Session。
+
+## 灵感与淘宝版本发布（2026-11-17）
+
+部署 `09577420-c9b1-460c-a7dc-324de24e6b78` 已成功，线上固定 Qoder Agent v6，EveryInfra Key 从 Railway 服务端 Variables 读取。使用当前工作区的必要源文件快照部署，不上传 `.env`、`.local`、本机数据库或私照；没有推送 Git 提交。新增来源缓存、用量表和字段自动迁移，原 PostgreSQL 与 `/data` 卷保持复用。
+
+已验证公网健康检查、原演示口令、未登录访问被拒绝、12 件衣物与私有图片保留、12 种风格定义和新前端包。云容器能读取原 EveryInfra 淘宝/小红书任务并解析图片，无新增付费查询；Agent 读回确认含 `search_products` 等 6 个业务工具。云端 Memory/Dream 保持原值 false，不在本次部署中擅自创建记忆绑定。
+
+## 原生 Skill 与 GitHub（2026-11-24）
+
+Agent v7 已绑定固定版本的 `muse-style-discovery`。本次将累计的灵感/淘宝功能与原生 Skill 发布器一并提交 GitHub；应用应同步 `QODER_AGENT_VERSION=7`。发布器产生的 `QODER_STYLE_SKILL_ID` / `QODER_STYLE_SKILL_VERSION` 仅用于后续发布回执，运行时通过固定 Agent 版本获取绑定。现有会话保留原快照，Memory/Dream 开关不随 Skill 发布自动改变。

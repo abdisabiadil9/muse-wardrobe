@@ -78,7 +78,7 @@ npm run qoder:setup
 npm run qoder:setup -- --execute
 ```
 
-脚本检查可用模型，使用 `packages/qoder/agent.mjs` 的工具定义，固定返回的 Agent 版本，并把资源 ID 写入本机 `.env`。它不启动 Session 或用户 turn；资源创建未知时记录 `.local/qoder-setup.json`，先对账，不反复创建。已有同名 Agent 会复用，**修改工具或指令后仍须显式发布新版本并核对配置**。
+脚本检查可用模型，使用 `packages/qoder/agent.mjs` 的工具定义，固定返回的 Agent 版本，并把资源 ID 写入本机 `.env`。它不启动 Session 或用户 turn；资源创建未知时记录 `.local/qoder-setup.json`，先对账，不反复创建。已有同名 Agent 默认复用；修改工具或指令后，用 `npm run qoder:setup -- --update-agent --execute` 显式发布并回读新版本，然后重启 API/Worker。原生 Skill 上传/挂载见 [Qoder Skills](../skills/qoder-cloud-agent/references/skills.md)。新灵感工具及成本边界见 [灵感与 Agent 接入](INSPIRATION_LIBRARY.md)。
 
 运行需要 `QODER_AGENT_ID`、`QODER_AGENT_VERSION`、`QODER_ENVIRONMENT_ID`、`QODER_MAX_CREDIT_COST`；可选 `QODER_MODEL` 用于 setup。修改配置后重启。只有用户点击“AI 帮我搭”才提交任务；选择衣物和保存不会运行模型。
 
@@ -146,4 +146,4 @@ npm run build
 | Docker 命令不存在       | 启动/安装 Docker Desktop；macOS 启动器会查常见安装路径，也可设置 `DOCKER_BIN` |
 | 端口被占用              | 检查旧 Vite/API 进程；前端使用固定 5179，API 使用 8787                        |
 
-当前不支持的业务入口包括真实 OIDC、自动衣物识别、购买建议及 Decart。它们返回明确未配置；商品/灵感列表目前为空，静态演示另有标记。账户有云端 Session/Memory 等记录时，删除会冻结账户并显示待人工处理的错误，不能据此宣称供应商数据已全部删除。
+当前不支持的业务入口包括真实 OIDC、自动衣物识别及 Decart。它们返回明确未配置；小红书灵感页和淘宝 Agent 搜索已接入 EveryInfra。商品搜索结果是对话内参考，不是用户已拥有的商品库；通用商品列表仍为空，静态演示另有标记。账户有云端 Session/Memory 等记录时，删除会冻结账户并显示待人工处理的错误，不能据此宣称供应商数据已全部删除。

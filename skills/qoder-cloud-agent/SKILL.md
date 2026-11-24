@@ -1,17 +1,19 @@
 ---
 name: qoder-cloud-agent
-description: 为应用集成 Qoder Cloud Agents 中国站 Managed API，处理 Agent、Session、SSE、Custom Tools、原生 Memory 和 Dream；用于开发、联调与排障，不用于 Qoder IDE 编程操作或 Forward API。
+description: 为应用集成 Qoder Cloud Agents 中国站 Managed API，处理 Agent、Session、SSE、Custom Tools、原生 Skill 上传挂载、Memory 和 Dream；用于开发、联调与排障，不用于 Qoder IDE 编程操作或 Forward API。
 ---
 
 # Qoder Cloud Agent 接入
 
-给开发同学及开发Agent使用的可移植skill。核对日期2026-11-16，协议为中国站Managed API。读取项目SPEC确定业务边界；本skill不授予创建云资源、发送用户数据或付费调用的额外权限。只有文档/实现请求时用离线样例和mock完成，不为“验证文档”消耗云额度。
+给开发同学及开发Agent使用的可移植skill。基础协议核对日期2026-11-16；原生 Skills 上传挂载于2026-11-24补充核对，协议为中国站Managed API。读取项目SPEC确定业务边界；本skill不授予创建云资源、发送用户数据或付费调用的额外权限。只有文档/实现请求时用离线样例和mock完成，不为“验证文档”消耗云额度。
 
 ## 选择入口
 
 - 首次搭建、资源和认证：读 [api.md](references/api.md)。
 - 实现SSE与工具循环、排查卡住或重复调用：读 [runtime.md](references/runtime.md)。
 - 接入Memory/Dream：读 [memory.md](references/memory.md)。
+- 原生 Skill 上传、版本发布、Agent 挂载和回退：读 [skills.md](references/skills.md)。本地 SKILL.md 或 system 内嵌文本不等于云端挂载。
+- 原生 Skill 上传、版本发布、Agent 挂载和回退：读 [skills.md](references/skills.md)。本地 SKILL.md 或 system 内嵌文本不等于云端挂载。
 - MUSE实际工具/任务约束：读项目 `docs/SPEC.md` 第6节；独立使用此skill时由调用方提供业务repository，不擅自创建数据库。
 
 ## 必须保留的协议边界
@@ -51,7 +53,7 @@ node scripts/request.mjs stream --session sess_REAL_ID --last-event-id evt_REAL_
 
 应用已提供 `packages/qoder/agent.mjs` 的 Agent 定义、`packages/qoder/client.mjs` 的 Managed API 扩展、`packages/qoder/memory.mjs` 的同步/Dream逻辑，以及 `apps/worker/runtime.mjs` 的持久工具循环；无需从参考脚本再搭一套平行服务。业务入口见项目 `docs/LOCAL_DEVELOPMENT.md` 与 `docs/SPEC.md`。
 
-`npm run qoder:setup` 默认只预览；显式 `--execute` 才准备开发资源并固定版本。Memory 通过 `npm run memory -- provision <用户UUID>` 显式配置。MUSE 已真实验证两工具搭配和 Memory 读写；Dream 仅有离线验证和手动路径，默认关闭，不能宣称租户隔离与派生摘要删除已完成。这里的应用状态不改变本 skill 随附脚本的离线默认行为。
+`npm run qoder:setup` 默认只预览；显式 `--execute` 才准备开发资源并固定版本。已有 Agent 通过 `--update-agent --execute` 上传/复用原生业务 Skill、校验下载内容并固定 Agent.skills 的不可变版本；实现与命令见 skills.md。已有 Agent 通过 `--update-agent --execute` 上传/复用原生业务 Skill、校验下载内容并固定 Agent.skills 的不可变版本；实现与命令见 skills.md。Memory 通过 `npm run memory -- provision <用户UUID>` 显式配置。MUSE 已真实验证两工具搭配和 Memory 读写；Dream 仅有离线验证和手动路径，默认关闭，不能宣称租户隔离与派生摘要删除已完成。这里的应用状态不改变本 skill 随附脚本的离线默认行为。
 
 ## 开发完成标准
 

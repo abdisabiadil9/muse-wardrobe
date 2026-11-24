@@ -17,14 +17,17 @@
 - AI 搭配：Qoder 读取真实衣橱，通过两个 Custom Tools 返回候选；只有用户采纳才修改草稿。
 - 图片试穿：选择默认男／女 AI 示例模特，或上传原始人物照片，再选择单件或整套，明确点击生成；Seedream 返回结果后私有转存。刷新、后台恢复、取消和未知请求状态均有对应处理。
 - 记忆：确认的偏好与反馈先存数据库，再同步到每用户 Qoder Memory Store；推荐 Session 只读挂载。
+- 风格灵感：12 种风格定义；小红书搜索/链接导入与 Lumi Custom Tools 共用缓存、任务和额度，支持对话图片卡片；淘宝 `search_products` 返回商品图片、参考价和来源。需配置 EveryInfra Key 并发布新版 Agent，详见 [灵感与 Agent 接入](docs/INSPIRATION_LIBRARY.md)。
 
 截至 2026-11-17，实际创建 3 个 Qoder 搭配任务（2 个成功、1 个中断后待确认），保存 3 张 Seedream 试穿图，完成 Memory 写入和读回。手机尺寸浏览器已验证候选采纳、照片上传、刷新恢复、对比与保存；68 项测试通过。详见 [验收记录](docs/VALIDATION.md)。Dream 只有离线测试和手动命令，**未执行真实 Dream，默认关闭**。
 
 公开 Sites 地址仍是独立的静态交互演示。真实 OIDC 登录、生产对象存储、商品数据源、自动识别、Decart 实时视频及生产发布尚待完成；开发启动会拒绝 `NODE_ENV=production`。生成图用于外观参考，不判断尺码。
 
+原生业务 Skill 与 Custom Tools 分工、上传和 Agent 挂载步骤见 [Qoder Skills 接入](skills/qoder-cloud-agent/references/skills.md)。
+
 ## Railway 组内 MVP
 
-仓库已提供 Dockerfile、健康检查和带口令的独立云端启动入口。配置 PostgreSQL、`/data` 持久卷与服务端变量后部署，具体见 **[Railway 注册与部署步骤](docs/RAILWAY.md)**。这是共用衣橱的封闭演示，不是正式多人账户版本。尚未在 Railway 账号内完成首次部署。
+仓库已提供 Dockerfile、健康检查和带口令的独立云端启动入口。配置 PostgreSQL、`/data` 持久卷与服务端变量后部署，具体见 **[Railway 注册与部署步骤](docs/RAILWAY.md)**。这是共用衣橱的封闭演示，不是正式多人账户版本。Railway 已部署，可使用原演示口令访问 [MUSE 云端](https://muse-web-production-eeb115cb.up.railway.app)；2026-11-17 已接入小红书灵感和淘宝 Custom Tool；2026-11-24 Agent v7 改为原生 Skill 挂载。
 
 ## 本地启动
 
@@ -61,6 +64,8 @@ packages/db/                 PostgreSQL 迁移、事务、租约与事件记录
 packages/domain/             领域校验、公开对象、服务端配置
 packages/qoder/              Agent 定义、Managed API、Memory/Dream
 packages/seedream/            单件/整套图片请求、产物下载与验证
+packages/inspiration/         风格定义、EveryInfra、共享缓存和 Agent 工具
+packages/products/            淘宝搜索契约、商品归一化和价格口径
 server/backend/              使用真实 PostgreSQL 的故障与权限测试
 server/reference/            可复用的早期协议参考，非服务入口
 skills/qoder-cloud-agent/     可移植 Qoder 接入 skill

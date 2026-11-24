@@ -36,3 +36,13 @@ CREATE TABLE IF NOT EXISTS memory_bindings (owner_id uuid PRIMARY KEY REFERENCES
 CREATE TABLE IF NOT EXISTS memory_sync_jobs (id uuid PRIMARY KEY, owner_id uuid NOT NULL REFERENCES users(id), resource_key text NOT NULL, generation integer NOT NULL, state text NOT NULL DEFAULT 'queued', error jsonb, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(owner_id,resource_key,generation));
 CREATE TABLE IF NOT EXISTS dream_jobs (id uuid PRIMARY KEY, owner_id uuid NOT NULL REFERENCES users(id), input_store_id text NOT NULL, input_generation integer NOT NULL, feedback_watermark bigint NOT NULL, session_ids jsonb NOT NULL, provider_id text, status text NOT NULL DEFAULT 'queued', output_store_id text, error jsonb, created_at timestamptz NOT NULL DEFAULT now());
 ALTER TABLE garments ADD COLUMN IF NOT EXISTS garment_kind text;
+ALTER TABLE tool_calls ADD COLUMN IF NOT EXISTS source_task_id uuid REFERENCES tasks(id);
+
+CREATE TABLE IF NOT EXISTS inspiration_cache (
+ cache_key text PRIMARY KEY, data jsonb, expires_at timestamptz, pending_task_id uuid,
+ updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS inspiration_usage (
+ month text PRIMARY KEY, search_count integer NOT NULL DEFAULT 0, note_count integer NOT NULL DEFAULT 0
+);
+ALTER TABLE inspiration_usage ADD COLUMN IF NOT EXISTS taobao_search_count integer NOT NULL DEFAULT 0;

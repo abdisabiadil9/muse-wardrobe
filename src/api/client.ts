@@ -1,4 +1,6 @@
 import { sha256 } from '@noble/hashes/sha2.js';
+import type { InspirationResult } from '../inspiration';
+import type { ProductSearchResult } from '../products';
 /** Application wire types mirror docs/contracts/openapi.json, never provider APIs. */
 export type Scene = 'daily' | 'weekend' | 'meeting';
 export type SlotName = 'coat' | 'top' | 'bottom' | 'shoes' | 'bag';
@@ -90,7 +92,12 @@ export type Task = {
   progress: number | null;
   last_event_seq: number;
   cancel_requested_at?: string | null;
-  result: OutfitProposal | TryonResult | null;
+  result:
+    | OutfitProposal
+    | TryonResult
+    | InspirationResult
+    | ProductSearchResult
+    | null;
   error: ErrorDetail | null;
   question?: string | null;
 };
@@ -101,6 +108,7 @@ export type Capabilities = {
   realtime_tryon: boolean;
   memory: boolean;
   dream: boolean;
+  inspiration?: boolean;
 };
 export type Me = {
   id: string;

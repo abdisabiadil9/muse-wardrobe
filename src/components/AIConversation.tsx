@@ -6,6 +6,8 @@ import {
   type ReactNode,
 } from 'react';
 import ReactMarkdown from 'react-markdown';
+import AgentInspirationCards from './AgentInspirationCards';
+import AgentProductCards from './AgentProductCards';
 import {
   ArrowDown,
   ArrowUp,
@@ -61,7 +63,7 @@ const labels: Record<string, string> = {
   running: '正在整理搭配思路',
   waiting_tools: '正在查看相关信息',
   needs_input: '再了解一点你的想法',
-  succeeded: '本次搭配已完成',
+  succeeded: '本次建议已完成',
   failed: '这次没有完成',
   cancelled: '已停止本次搭配',
   unconfirmed: '正在等待结果确认',
@@ -73,6 +75,10 @@ const toolLabels: Record<string, string> = {
   read_memory: '了解穿搭偏好',
   search_memory: '查找穿搭偏好',
   get_weather: '查看天气',
+  get_style_definition: '了解风格特点',
+  search_inspirations: '查找小红书图文',
+  read_inspiration_note: '读取灵感笔记',
+  search_products: '查找淘宝商品',
 };
 function Markdown({
   text,
@@ -156,11 +162,15 @@ function ToolRow({
   open,
   onToggle,
   completed,
+  onImage,
+  onUse,
 }: {
   part: Extract<ConversationPart, { type: 'tool' }>;
   open: boolean;
   onToggle: () => void;
   completed: boolean;
+  onImage: (url: string, alt: string) => void;
+  onUse: (text: string) => void;
 }) {
   const done = part.status !== 'running';
   return (
@@ -194,6 +204,21 @@ function ToolRow({
         </small>
         <ChevronDown size={14} className="ai-tool-chevron" />
       </button>
+      {['search_inspirations', 'read_inspiration_note'].includes(part.name) && (
+        <AgentInspirationCards
+          output={part.output}
+          styleId={(part.input as { style_id?: string } | undefined)?.style_id}
+          onImage={onImage}
+          onUse={onUse}
+        />
+      )}
+      {part.name === 'search_products' && (
+        <AgentProductCards
+          output={part.output}
+          onImage={onImage}
+          onUse={onUse}
+        />
+      )}
       {open && (
         <div id={`tool-${part.id}`} className="ai-tool-detail">
           <div>
@@ -448,16 +473,7 @@ export default function AIConversation({
   }, []);
   const submit = async () => {
     const text = message.trim();
-    if (
-      !text ||
-      busy ||
-      active ||
-      c.pending ||
-      c.loading ||
-      !enabled ||
-      !items.length
-    )
-      return;
+    if (!text || busy || active || c.pending || c.loading || !enabled) return;
     const threadId = c.activeId;
     setPreparingIds((current) => [...current, threadId]);
     setLocalError('');
@@ -623,6 +639,11 @@ export default function AIConversation({
                     <ToolRow
                       key={part.id}
                       part={part}
+                      onImage={onImage}
+                      onUse={(text) => {
+                        setMessage(text);
+                        input.current?.focus();
+                      }}
                       completed={!taskIsWorking(task)}
                       open={!!expanded[key]}
                       onToggle={() => {
@@ -742,7 +763,7 @@ export default function AIConversation({
         )}
         {enabled && !items.length && (
           <p className="ai-service-note">
-            先添加几件衣服，让搭配从你的衣橱开始。
+            可以先聊风格、找穿搭灵感；添加衣物后，再组合你自己的搭配。
           </p>
         )}
         {!c.empty && !active && !c.pending && (
@@ -800,8 +821,7 @@ export default function AIConversation({
               !!active ||
               !!c.pending ||
               c.loading ||
-              !enabled ||
-              !items.length
+              !enabled
             }
           >
             {busy ? (

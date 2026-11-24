@@ -7,6 +7,7 @@ import { ManagedQoder } from '../../packages/qoder/client.mjs';
 import { syncMemoryJobs } from '../../packages/qoder/memory.mjs';
 import { Worker } from './runtime.mjs';
 import { SeedreamAdapter } from '../../packages/seedream/index.mjs';
+import { EveryInfra } from '../../packages/inspiration/everyinfra.mjs';
 // Some cloud networks fail the default IPv4/IPv6 connection race to Ark.
 // Opt in per deployment; no retries or changes to request semantics.
 if (process.env.OUTBOUND_IPV4_ONLY === 'true') {
@@ -26,6 +27,9 @@ const worker = new Worker({
     secret: config.sessionSecret,
   }),
   qoder,
+  inspiration: config.inspirationEnabled
+    ? new EveryInfra({ apiKey: config.everyinfraKey })
+    : null,
   seedream: config.tryonEnabled
     ? new SeedreamAdapter({ apiKey: config.arkKey, model: config.arkModel })
     : null,
